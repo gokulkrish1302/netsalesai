@@ -15,10 +15,11 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, Inbox, LayoutGrid, List } from "lucide-react";
+import { ChevronDown, Inbox, LayoutGrid, List, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrencyShort } from "@/lib/format";
 import { toast } from "sonner";
+import { useModals } from "@/components/modals/ModalsProvider";
 
 export const Route = createFileRoute("/accounts")({
   head: () => ({
@@ -42,11 +43,11 @@ type ViewMode = "board" | "list";
 
 function AccountsPage() {
   const { scoredAccounts } = useApp();
+  const modals = useModals();
   const [view, setView] = useState<ViewMode>("board");
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>("score");
-  // Local manual overrides (UI-only; doesn't touch scoring logic)
   const [overrides, setOverrides] = useState<Record<string, Category>>({});
   const [dragOver, setDragOver] = useState<Category | null>(null);
 
@@ -87,23 +88,31 @@ function AccountsPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <span className="label-eyebrow">Portfolio</span>
-          <h1 className="serif mt-1 text-3xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
-            Accounts
-          </h1>
+          <h1 className="display text-[28px] leading-tight md:text-[32px]">Accounts</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {sorted.length} of {scoredAccounts.length} accounts shown
           </p>
         </div>
-        <div className="flex items-center gap-1 rounded-md bg-accent p-1">
-          <ToggleBtn active={view === "board"} onClick={() => setView("board")}>
-            <LayoutGrid className="h-3.5 w-3.5" /> Board
-          </ToggleBtn>
-          <ToggleBtn active={view === "list"} onClick={() => setView("list")}>
-            <List className="h-3.5 w-3.5" /> List
-          </ToggleBtn>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="pill h-10 gap-2 px-4"
+            onClick={() => modals.openImport()}
+          >
+            <Upload className="h-4 w-4" />
+            Import from Excel
+          </Button>
+          <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
+            <ToggleBtn active={view === "board"} onClick={() => setView("board")}>
+              <LayoutGrid className="h-3.5 w-3.5" /> Board
+            </ToggleBtn>
+            <ToggleBtn active={view === "list"} onClick={() => setView("list")}>
+              <List className="h-3.5 w-3.5" /> List
+            </ToggleBtn>
+          </div>
         </div>
       </div>
 
@@ -114,7 +123,7 @@ function AccountsPage() {
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Sort</span>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-              <SelectTrigger className="h-8 w-44 text-xs">
+              <SelectTrigger className="h-9 w-44 rounded-full text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -129,12 +138,16 @@ function AccountsPage() {
       </div>
 
       {sorted.length === 0 ? (
-        <div className="app-card flex flex-col items-center gap-2 p-12 text-center">
+        <div className="app-card flex flex-col items-center gap-3 p-12 text-center">
           <Inbox className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No accounts match the current filters.</p>
+          <Button variant="outline" size="sm" className="pill gap-2" onClick={() => modals.openImport()}>
+            <Upload className="h-3.5 w-3.5" />
+            Import some
+          </Button>
         </div>
       ) : view === "board" ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {COLUMNS.map((cat) => {
             const items = sorted
               .filter((a) => a.category === cat)
@@ -148,19 +161,22 @@ function AccountsPage() {
                 onDragLeave={() => setDragOver((d) => (d === cat ? null : d))}
                 onDrop={(e) => handleDrop(e, cat)}
                 className={cn(
-                  "flex min-h-[300px] flex-col rounded-lg p-3 transition-colors",
+                  "flex min-h-[300px] flex-col rounded-2xl p-3 transition-colors",
                   dragOver === cat && "swimlane-dragover",
                 )}
-                style={{ backgroundColor: "color-mix(in oklab, var(--muted) 60%, transparent)" }}
+                style={{ backgroundColor: "var(--surface-1)" }}
               >
-                <div className="mb-3 flex items-center justify-between border-b pb-2">
+                <div className="mb-3 flex items-center justify-between px-1">
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
                       <span className="text-xs font-bold uppercase tracking-wide" style={{ color }}>
                         {CATEGORY_META[cat].label}
                       </span>
-                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                      <span
+                        className="rounded-full px-1.5 text-[11px] font-semibold tabular-nums text-muted-foreground"
+                        style={{ backgroundColor: "var(--surface-2)" }}
+                      >
                         {items.length}
                       </span>
                     </div>
@@ -179,7 +195,7 @@ function AccountsPage() {
                     />
                   ))}
                   {items.length === 0 && (
-                    <div className="mt-2 rounded border-2 border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
+                    <div className="mt-2 rounded-xl border-2 border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
                       Drop accounts here
                     </div>
                   )}
@@ -204,7 +220,7 @@ function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors",
+        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
         active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
       )}
     >
@@ -227,11 +243,11 @@ function MultiSelect<T extends string>({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1">
+        <Button variant="outline" size="sm" className="pill h-9 gap-1.5 px-3">
           {label}
           {selected.length > 0 && (
             <span
-              className="ml-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
+              className="ml-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white"
               style={{ backgroundColor: "var(--primary)" }}
             >
               {selected.length}
@@ -240,14 +256,14 @@ function MultiSelect<T extends string>({
           <ChevronDown className="h-3 w-3" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-2">
-        <div className="space-y-1">
+      <PopoverContent className="w-52 rounded-2xl p-2">
+        <div className="space-y-0.5">
           {options.map((o) => {
             const checked = selected.includes(o);
             return (
               <label
                 key={o}
-                className="flex cursor-pointer items-center gap-2 rounded p-1.5 text-sm hover:bg-accent"
+                className="flex cursor-pointer items-center gap-2 rounded-xl p-2 text-sm hover:bg-accent"
               >
                 <Checkbox
                   checked={checked}

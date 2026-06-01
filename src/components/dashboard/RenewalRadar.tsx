@@ -1,7 +1,7 @@
 import { useApp } from "@/state/AppStore";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { Link } from "@tanstack/react-router";
-import { Mail } from "lucide-react";
+import { Mail, Bell } from "lucide-react";
 
 export function RenewalRadar() {
   const { scoredAccounts, openAccount } = useApp();
@@ -9,20 +9,27 @@ export function RenewalRadar() {
   const upcoming = [...scoredAccounts]
     .sort((a, b) => a.contractRenewalDays - b.contractRenewalDays)
     .slice(0, 5);
+  const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
 
   return (
     <div className="app-card flex flex-col p-5">
       <div className="mb-4 flex items-center gap-2">
-        <span className="label-eyebrow">Renewal Alerts</span>
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-full"
+          style={{ backgroundColor: "var(--hot-bg)" }}
+        >
+          <Bell className="h-3.5 w-3.5" style={{ color: "var(--hot)" }} />
+        </div>
+        <h3 className="display flex-1 text-base">Renewal radar</h3>
         <span
-          className="inline-flex h-4 min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
+          className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold text-white"
           style={{ backgroundColor: "var(--hot)" }}
         >
-          {scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length}
+          {urgentCount}
         </span>
       </div>
 
-      <div className="flex-1 divide-y">
+      <div className="flex-1 space-y-1">
         {upcoming.map((a) => {
           const pct = Math.min(100, Math.max(0, ((180 - a.contractRenewalDays) / 180) * 100));
           const barColor =
@@ -32,13 +39,16 @@ export function RenewalRadar() {
                 ? "var(--warm)"
                 : "var(--primary)";
           return (
-            <div key={a.id} className="flex items-center gap-3 py-2.5">
+            <div
+              key={a.id}
+              className="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-surface-1"
+            >
               <button
                 onClick={() => openAccount(a.id)}
-                className="min-w-0 flex-1 text-left hover:text-primary"
+                className="min-w-0 flex-1 text-left"
               >
-                <div className="truncate text-sm font-medium">{truncate(a.accountName, 18)}</div>
-                <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-secondary">
+                <div className="truncate text-sm font-medium hover:text-primary">{truncate(a.accountName, 20)}</div>
+                <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-surface-2">
                   <div
                     className="h-full transition-all"
                     style={{ width: `${pct}%`, backgroundColor: barColor }}
@@ -48,7 +58,7 @@ export function RenewalRadar() {
               <span className="w-12 text-right text-xs font-bold tabular-nums">{a.contractRenewalDays}d</span>
               <button
                 onClick={() => modals.openEmail(a)}
-                className="rounded p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label="Draft email"
               >
                 <Mail className="h-3.5 w-3.5" />
@@ -60,9 +70,9 @@ export function RenewalRadar() {
 
       <Link
         to="/renewals"
-        className="mt-3 inline-flex items-center text-[12px] font-medium text-primary hover:underline"
+        className="pill mt-3 inline-flex items-center justify-center self-start px-3 py-1.5 text-[12px] font-medium text-primary hover:bg-primary-container"
       >
-        View all renewal alerts →
+        View all renewals →
       </Link>
     </div>
   );

@@ -47,7 +47,7 @@ export function TopBar() {
         style={{ backgroundColor: "var(--primary)" }}
         aria-label="Account"
       >
-        JD
+        CH
       </div>
     </header>
   );

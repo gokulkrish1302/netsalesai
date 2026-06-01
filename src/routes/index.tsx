@@ -24,7 +24,7 @@ function Dashboard() {
     <div className="space-y-6">
       <div>
         <h1 className="display text-[28px] leading-tight md:text-[32px]">
-          Good day, Jordan
+          Good day, Chris
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Here's where your portfolio stands today.

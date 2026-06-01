@@ -5,11 +5,11 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -40,6 +40,10 @@
   --color-not-ready-bg: var(--not-ready-bg);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -53,66 +57,70 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-serif: Georgia, "Times New Roman", "Iowan Old Style", serif;
+  --font-sans: "Google Sans Text", "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Google Sans", "Inter", system-ui, sans-serif;
 }
 
 :root {
-  --radius: 0.5rem;
-  /* Page bg #F0F2F5 */
-  --background: oklch(0.965 0.003 247);
-  /* Cards #FFFFFF */
+  --radius: 0.75rem;
+  /* Material-3 inspired warm light surface */
+  --background: oklch(0.985 0.003 247);          /* #F8FAFC ish */
+  --surface-1: oklch(0.975 0.004 247);
+  --surface-2: oklch(0.962 0.005 247);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.02 264);
+  --card-foreground: oklch(0.22 0.02 264);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.02 264);
-  /* Text primary #1A1A2E */
-  --foreground: oklch(0.18 0.02 264);
-  /* Primary NetApp blue #0067C5 */
-  --primary: oklch(0.515 0.171 251);
+  --popover-foreground: oklch(0.22 0.02 264);
+  --foreground: oklch(0.22 0.02 264);
+  /* NetApp blue tuned slightly toward Google Blue energy */
+  --primary: oklch(0.535 0.18 251);
   --primary-foreground: oklch(1 0 0);
+  --primary-container: oklch(0.94 0.04 251);     /* tonal surface */
+  --on-primary-container: oklch(0.33 0.13 251);
   --secondary: oklch(0.965 0.005 247);
-  --secondary-foreground: oklch(0.18 0.02 264);
-  --muted: oklch(0.965 0.005 247);
-  --muted-foreground: oklch(0.55 0.013 258);
-  --accent: oklch(0.96 0.012 251);
-  --accent-foreground: oklch(0.18 0.02 264);
+  --secondary-foreground: oklch(0.22 0.02 264);
+  --muted: oklch(0.96 0.005 247);
+  --muted-foreground: oklch(0.5 0.013 258);
+  --accent: oklch(0.955 0.012 251);
+  --accent-foreground: oklch(0.22 0.02 264);
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(1 0 0);
   --border: oklch(0.92 0.005 258);
   --input: oklch(0.92 0.005 258);
-  --ring: oklch(0.515 0.171 251);
+  --ring: oklch(0.535 0.18 251);
 
-  /* Category colors */
-  --hot: oklch(0.58 0.22 27);            /* #DC2626 */
-  --hot-bg: oklch(0.965 0.04 27);
-  --warm: oklch(0.66 0.16 56);           /* #D97706 */
-  --warm-bg: oklch(0.97 0.04 70);
-  --cold: oklch(0.55 0.18 258);          /* #2563EB */
-  --cold-bg: oklch(0.96 0.03 258);
-  --not-ready: oklch(0.68 0.01 258);     /* #9CA3AF */
-  --not-ready-bg: oklch(0.96 0.003 258);
+  /* Category colors (kept, but with friendlier containers) */
+  --hot: oklch(0.58 0.22 27);
+  --hot-bg: oklch(0.97 0.04 27);
+  --warm: oklch(0.66 0.16 56);
+  --warm-bg: oklch(0.975 0.04 70);
+  --cold: oklch(0.55 0.18 258);
+  --cold-bg: oklch(0.965 0.03 258);
+  --not-ready: oklch(0.68 0.01 258);
+  --not-ready-bg: oklch(0.965 0.003 258);
 
   --success: oklch(0.62 0.17 145);
   --warning: oklch(0.66 0.18 45);
 
-  --chart-1: oklch(0.515 0.171 251);
+  --chart-1: oklch(0.535 0.18 251);
   --chart-2: oklch(0.58 0.22 27);
   --chart-3: oklch(0.66 0.16 56);
   --chart-4: oklch(0.55 0.18 258);
   --chart-5: oklch(0.55 0.013 258);
 
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.18 0.02 264);
-  --sidebar-primary: oklch(0.515 0.171 251);
+  --sidebar: oklch(0.975 0.004 247);
+  --sidebar-foreground: oklch(0.22 0.02 264);
+  --sidebar-primary: oklch(0.535 0.18 251);
   --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.965 0.005 247);
-  --sidebar-accent-foreground: oklch(0.18 0.02 264);
+  --sidebar-accent: oklch(0.94 0.04 251);
+  --sidebar-accent-foreground: oklch(0.33 0.13 251);
   --sidebar-border: oklch(0.92 0.005 258);
-  --sidebar-ring: oklch(0.515 0.171 251);
+  --sidebar-ring: oklch(0.535 0.18 251);
 
-  /* Editorial shadow */
-  --shadow-editorial: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  /* Material elevation */
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --elevation-2: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  --elevation-3: 0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 12px 28px -8px rgba(0, 0, 0, 0.12);
 }
 
 @layer base {
@@ -122,6 +130,7 @@
   html, body {
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   body {
     background-color: var(--color-background);
@@ -130,30 +139,44 @@
 }
 
 @layer utilities {
-  /* Editorial card — no border, soft layered shadow */
+  /* Material-style elevated surface */
   .app-card {
     background: var(--card);
-    border-radius: 8px;
-    box-shadow: var(--shadow-editorial);
+    border-radius: 16px;
+    box-shadow: var(--elevation-1);
+    transition: box-shadow 0.2s ease;
   }
-  .serif {
-    font-family: var(--font-serif);
+  .app-card:hover {
+    box-shadow: var(--elevation-2);
   }
-  /* 10px ALL CAPS section anchor label */
+  .surface-tonal {
+    background: var(--surface-1);
+    border-radius: 16px;
+  }
+  /* Eyebrow label — softer, sentence case feel via tracking */
   .label-eyebrow {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--muted-foreground);
   }
-  /* KPI number — serif, tight */
+  /* Display number — Google Sans heavy tracking-tight */
   .kpi-num {
-    font-family: var(--font-serif);
-    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
     color: var(--foreground);
-    font-weight: 400;
+    font-weight: 500;
     line-height: 1;
+  }
+  .display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+  /* Pill button base */
+  .pill {
+    border-radius: 9999px;
   }
   .flash-success {
     animation: flash-success 0.6s ease;
@@ -169,17 +192,15 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.45; transform: scale(1.35); }
   }
-  .ripple {
-    animation: ripple 0.6s ease-out;
-  }
-  @keyframes ripple {
-    0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--primary) 60%, transparent); }
-    100% { box-shadow: 0 0 0 14px transparent; }
-  }
   .swimlane-dragover {
     outline: 2px dashed var(--primary);
     outline-offset: -4px;
-    background: color-mix(in oklab, var(--primary) 5%, transparent);
+    background: color-mix(in oklab, var(--primary) 7%, transparent) !important;
+  }
+  /* Google-style focus ring */
+  .gring:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--primary) 25%, transparent);
   }
 }
 

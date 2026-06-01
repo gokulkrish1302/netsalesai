@@ -3,7 +3,6 @@ import { Search } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { ScorePill } from "@/components/common/ScoreBadge";
 import { CategoryPill } from "@/components/common/CategoryPill";
-import { Input } from "@/components/ui/input";
 
 export function GlobalSearch() {
   const { scoredAccounts, openAccount } = useApp();
@@ -31,10 +30,13 @@ export function GlobalSearch() {
   }
 
   return (
-    <div ref={ref} className="relative w-full max-w-md">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
+    <div ref={ref} className="relative w-full">
+      <div
+        className="flex h-11 items-center gap-3 rounded-full bg-surface-2 px-4 transition-shadow focus-within:bg-card focus-within:shadow-md"
+        style={{ backgroundColor: "var(--surface-2)" }}
+      >
+        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -58,18 +60,21 @@ export function GlobalSearch() {
               setOpen(false);
             }
           }}
-          placeholder="Search accounts..."
-          className="pl-9"
+          placeholder="Search accounts, industries, regions…"
+          className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
       </div>
       {open && q && matches.length > 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-80 overflow-auto rounded-md border bg-popover shadow-lg">
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-2 max-h-96 overflow-auto rounded-2xl bg-popover p-1"
+          style={{ boxShadow: "var(--elevation-3)" }}
+        >
           {matches.map((a, i) => (
             <button
               key={a.id}
               onMouseEnter={() => setHighlight(i)}
               onClick={() => pick(a.id)}
-              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm ${
+              className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition-colors ${
                 i === highlight ? "bg-accent" : ""
               }`}
             >
@@ -88,7 +93,10 @@ export function GlobalSearch() {
         </div>
       )}
       {open && q && matches.length === 0 && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border bg-popover p-4 text-sm text-muted-foreground shadow-lg">
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-2 rounded-2xl bg-popover p-5 text-sm text-muted-foreground"
+          style={{ boxShadow: "var(--elevation-3)" }}
+        >
           No accounts match "{q}"
         </div>
       )}

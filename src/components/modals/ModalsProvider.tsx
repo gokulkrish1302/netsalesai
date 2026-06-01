@@ -3,6 +3,7 @@ import type { ScoredAccount } from "@/lib/types";
 import { EmailModal } from "./EmailModal";
 import { ActionPlanModal } from "./ActionPlanModal";
 import { LogCallModal } from "./LogCallModal";
+import { ImportAccountsModal } from "./ImportAccountsModal";
 
 type ModalKind = "email" | "plan" | "call" | null;
 
@@ -10,6 +11,7 @@ interface ModalsCtx {
   openEmail: (a: ScoredAccount) => void;
   openPlan: (a: ScoredAccount) => void;
   openCall: (a: ScoredAccount) => void;
+  openImport: () => void;
 }
 
 const Ctx = createContext<ModalsCtx | null>(null);
@@ -17,6 +19,7 @@ const Ctx = createContext<ModalsCtx | null>(null);
 export function ModalsProvider({ children }: { children: ReactNode }) {
   const [kind, setKind] = useState<ModalKind>(null);
   const [account, setAccount] = useState<ScoredAccount | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   function open(k: ModalKind, a: ScoredAccount) {
     setAccount(a);
@@ -29,12 +32,14 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
         openEmail: (a) => open("email", a),
         openPlan: (a) => open("plan", a),
         openCall: (a) => open("call", a),
+        openImport: () => setImportOpen(true),
       }}
     >
       {children}
       <EmailModal account={account} open={kind === "email"} onOpenChange={(o) => !o && setKind(null)} />
       <ActionPlanModal account={account} open={kind === "plan"} onOpenChange={(o) => !o && setKind(null)} />
       <LogCallModal account={account} open={kind === "call"} onOpenChange={(o) => !o && setKind(null)} />
+      <ImportAccountsModal open={importOpen} onOpenChange={setImportOpen} />
     </Ctx.Provider>
   );
 }

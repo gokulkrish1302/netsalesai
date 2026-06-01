@@ -33,7 +33,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap",
       },
     ],
   }),
@@ -46,8 +46,15 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <style>{`
+          /* Map our font tokens to the loaded Google web fonts.
+             "Google Sans" / "Google Sans Text" are not on Google Fonts as direct
+             names, so we fall back to DM Sans (very similar geometric humanist) + Inter. */
+          @font-face { font-family: "Google Sans"; src: local("Google Sans"), local("DM Sans"); font-display: swap; }
+          @font-face { font-family: "Google Sans Text"; src: local("Google Sans Text"), local("Inter"); font-display: swap; }
+        `}</style>
       </head>
-      <body>
+      <body style={{ fontFamily: "'Google Sans Text', 'Inter', system-ui, sans-serif" }}>
         {children}
         <Scripts />
       </body>
@@ -63,9 +70,9 @@ function RootComponent() {
         <ModalsProvider>
           <div className="min-h-screen bg-background">
             <Sidebar />
-            <div className="md:pl-[56px]">
+            <div className="md:pl-[72px]">
               <TopBar />
-              <main className="p-4 pb-20 md:p-6 md:pb-6">
+              <main className="p-4 pb-20 md:p-8 md:pb-8">
                 <Outlet />
               </main>
             </div>

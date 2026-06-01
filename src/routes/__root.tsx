@@ -20,12 +20,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NetApp Cloud Migration Agent" },
+      { title: "visibilitynet" },
       {
         name: "description",
         content:
           "Sales intelligence and account-scoring workspace for NetApp's cloud migration team.",
       },
+      { property: "og:title", content: "visibilitynet" },
+      { name: "twitter:title", content: "visibilitynet" },
+      { name: "description", content: "NetApp Cloud Compass is a sales intelligence tool for NetApp's sales team." },
+      { property: "og:description", content: "NetApp Cloud Compass is a sales intelligence tool for NetApp's sales team." },
+      { name: "twitter:description", content: "NetApp Cloud Compass is a sales intelligence tool for NetApp's sales team." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a64db1de-ef87-4f6c-8dc6-ebb9851c21b1/id-preview-49d92f94--66e230a6-e893-4a65-9a41-ebb8e8c71fae.lovable.app-1780280366525.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a64db1de-ef87-4f6c-8dc6-ebb9851c21b1/id-preview-49d92f94--66e230a6-e893-4a65-9a41-ebb8e8c71fae.lovable.app-1780280366525.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

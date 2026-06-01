@@ -9,6 +9,7 @@ interface AppState {
   stageHistory: Record<string, StageHistoryEntry[]>;
   notes: Record<string, { id: string; text: string; createdAt: string }[]>;
   callLogs: Record<string, CallLog[]>;
+  importedAccounts: Account[];
   activeAccountId: string | null;
 }
 
@@ -18,14 +19,17 @@ type Action =
   | { type: "SET_STAGE"; accountId: string; stage: PipelineStage }
   | { type: "ADD_NOTE"; accountId: string; text: string }
   | { type: "ADD_CALL_LOG"; log: CallLog }
+  | { type: "ADD_IMPORTED"; accounts: Account[] }
+  | { type: "REMOVE_IMPORTED"; id: string }
   | { type: "OPEN_ACCOUNT"; accountId: string | null };
 
-const LS_KEY = "netapp-cma-state-v1";
+const LS_KEY = "netapp-cma-state-v2";
+const LS_LEGACY = "netapp-cma-state-v1";
 
 function loadPersisted(): Partial<AppState> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(LS_KEY) ?? localStorage.getItem(LS_LEGACY);
     if (!raw) return {};
     return JSON.parse(raw);
   } catch {
@@ -36,7 +40,8 @@ function loadPersisted(): Partial<AppState> {
 function initial(): AppState {
   const persisted = loadPersisted();
   const pipelineStages: Record<string, PipelineStage> = { ...persisted.pipelineStages };
-  for (const a of MOCK_ACCOUNTS) {
+  const imported = persisted.importedAccounts ?? [];
+  for (const a of [...MOCK_ACCOUNTS, ...imported]) {
     if (!pipelineStages[a.id]) pipelineStages[a.id] = a.pipelineStage;
   }
   return {
@@ -45,6 +50,7 @@ function initial(): AppState {
     stageHistory: persisted.stageHistory ?? {},
     notes: persisted.notes ?? {},
     callLogs: persisted.callLogs ?? {},
+    importedAccounts: imported,
     activeAccountId: null,
   };
 }
@@ -91,6 +97,23 @@ function reducer(state: AppState, action: Action): AppState {
         },
       };
     }
+    case "ADD_IMPORTED": {
+      const nextStages = { ...state.pipelineStages };
+      for (const a of action.accounts) {
+        if (!nextStages[a.id]) nextStages[a.id] = a.pipelineStage;
+      }
+      return {
+        ...state,
+        importedAccounts: [...action.accounts, ...state.importedAccounts],
+        pipelineStages: nextStages,
+      };
+    }
+    case "REMOVE_IMPORTED": {
+      return {
+        ...state,
+        importedAccounts: state.importedAccounts.filter((a) => a.id !== action.id),
+      };
+    }
     case "OPEN_ACCOUNT":
       return { ...state, activeAccountId: action.accountId };
     default:
@@ -108,6 +131,8 @@ interface AppContextValue {
   setStage: (accountId: string, stage: PipelineStage) => void;
   addNote: (accountId: string, text: string) => void;
   addCallLog: (log: CallLog) => void;
+  addImportedAccounts: (accounts: Account[]) => void;
+  removeImportedAccount: (id: string) => void;
   openAccount: (accountId: string | null) => void;
 }
 
@@ -126,17 +151,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
       stageHistory: state.stageHistory,
       notes: state.notes,
       callLogs: state.callLogs,
+      importedAccounts: state.importedAccounts,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
-  }, [state.weights, state.pipelineStages, state.stageHistory, state.notes, state.callLogs]);
+  }, [state.weights, state.pipelineStages, state.stageHistory, state.notes, state.callLogs, state.importedAccounts]);
 
   const accountsWithStages: Account[] = useMemo(
     () =>
-      MOCK_ACCOUNTS.map((a) => ({
+      [...MOCK_ACCOUNTS, ...state.importedAccounts].map((a) => ({
         ...a,
         pipelineStage: state.pipelineStages[a.id] ?? a.pipelineStage,
       })),
-    [state.pipelineStages],
+    [state.pipelineStages, state.importedAccounts],
   );
 
   const previousScoredAccounts = useMemo(
@@ -155,7 +181,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const setWeights = useCallback((w: Weights) => {
-    setPreviousWeights((prev) => prev); // keep baseline = last applied
+    setPreviousWeights((prev) => prev);
     dispatch({ type: "SET_WEIGHTS", weights: w });
   }, []);
   const resetWeights = useCallback(() => dispatch({ type: "RESET_WEIGHTS" }), []);
@@ -169,12 +195,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
   const addCallLog = useCallback((log: CallLog) => dispatch({ type: "ADD_CALL_LOG", log }), []);
+  const addImportedAccounts = useCallback(
+    (accounts: Account[]) => dispatch({ type: "ADD_IMPORTED", accounts }),
+    [],
+  );
+  const removeImportedAccount = useCallback(
+    (id: string) => dispatch({ type: "REMOVE_IMPORTED", id }),
+    [],
+  );
   const openAccount = useCallback(
     (accountId: string | null) => dispatch({ type: "OPEN_ACCOUNT", accountId }),
     [],
   );
 
-  // Save a baseline before each weight change for before/after compare
   useEffect(() => {
     const timer = setTimeout(() => setPreviousWeights(state.weights), 4000);
     return () => clearTimeout(timer);
@@ -190,6 +223,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStage,
     addNote,
     addCallLog,
+    addImportedAccounts,
+    removeImportedAccount,
     openAccount,
   };
 

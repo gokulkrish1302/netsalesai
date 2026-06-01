@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { KpiRow } from "@/components/dashboard/KpiRow";
+import { StatStrip } from "@/components/dashboard/StatStrip";
+import { PriorityMatrix } from "@/components/dashboard/PriorityMatrix";
+import { TopPriorityCard } from "@/components/dashboard/TopPriorityCard";
+import { RenewalRadar } from "@/components/dashboard/RenewalRadar";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
-import { FocusCard } from "@/components/dashboard/FocusCard";
-import { CategoryDonut } from "@/components/dashboard/CategoryDonut";
-import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
-import { PriorityTable } from "@/components/dashboard/PriorityTable";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -13,7 +12,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Overview of HOT leads, pipeline value, and renewal urgency across NetApp's enterprise accounts.",
+          "Priority matrix and renewal radar across NetApp's enterprise cloud migration portfolio.",
       },
     ],
   }),
@@ -22,21 +21,26 @@ export const Route = createFileRoute("/")({
 
 function Dashboard() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Cloud migration opportunity across 20 enterprise accounts
-        </p>
+    <div className="-mx-4 md:-mx-6">
+      <div className="px-4 pb-2 pt-1 md:px-6">
+        <span className="label-eyebrow">Intelligence Briefing</span>
+        <h1 className="serif mt-1 text-3xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+          Cloud migration outlook
+        </h1>
       </div>
-      <KpiRow />
-      <AlertBanner />
-      <FocusCard />
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <CategoryDonut />
-        <TopAccountsBar />
+      <StatStrip />
+      <div className="px-4 pt-5 md:px-6">
+        <AlertBanner />
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-5">
+          <div className="lg:col-span-3">
+            <PriorityMatrix />
+          </div>
+          <div className="flex flex-col gap-5 lg:col-span-2">
+            <TopPriorityCard />
+            <RenewalRadar />
+          </div>
+        </div>
       </div>
-      <PriorityTable />
     </div>
   );
 }

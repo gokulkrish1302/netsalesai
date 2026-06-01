@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useApp } from "@/state/AppStore";
 import { AccountCard } from "@/components/accounts/AccountCard";
+import { SwimlaneCard } from "@/components/accounts/SwimlaneCard";
 import { CATEGORY_META } from "@/lib/scoring";
-import type { Category, Industry, Region } from "@/lib/types";
+import type { Category, Industry, Region, ScoredAccount } from "@/lib/types";
 import {
   Select,
   SelectContent,
@@ -14,8 +15,10 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronDown, Inbox } from "lucide-react";
+import { ChevronDown, Inbox, LayoutGrid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatCurrencyShort } from "@/lib/format";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/accounts")({
   head: () => ({
@@ -23,120 +26,190 @@ export const Route = createFileRoute("/accounts")({
       { title: "Accounts — NetApp Cloud Migration Agent" },
       {
         name: "description",
-        content: "Filter and triage your enterprise account portfolio by score, industry, and region.",
+        content: "Triage your portfolio in a swimlane board or list view by category, industry, and region.",
       },
     ],
   }),
   component: AccountsPage,
 });
 
-const CATEGORIES: (Category | "ALL")[] = ["ALL", "HOT", "WARM", "COLD", "NOT_READY"];
 const INDUSTRIES: Industry[] = ["Tech", "Finance", "Healthcare", "Retail", "Manufacturing", "Government"];
 const REGIONS: Region[] = ["West", "East", "Central", "EMEA", "APAC"];
+const COLUMNS: Category[] = ["HOT", "WARM", "COLD", "NOT_READY"];
 
 type SortKey = "score" | "budget" | "deviceAge" | "renewal";
+type ViewMode = "board" | "list";
 
 function AccountsPage() {
   const { scoredAccounts } = useApp();
-  const [category, setCategory] = useState<Category | "ALL">("ALL");
+  const [view, setView] = useState<ViewMode>("board");
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [sortBy, setSortBy] = useState<SortKey>("score");
+  // Local manual overrides (UI-only; doesn't touch scoring logic)
+  const [overrides, setOverrides] = useState<Record<string, Category>>({});
+  const [dragOver, setDragOver] = useState<Category | null>(null);
 
-  const filtered = useMemo(() => {
-    let list = scoredAccounts;
-    if (category !== "ALL") list = list.filter((a) => a.category === category);
+  const accounts = useMemo(() => {
+    let list = scoredAccounts.map((a) =>
+      overrides[a.id] ? { ...a, category: overrides[a.id] } : a,
+    );
     if (industries.length) list = list.filter((a) => industries.includes(a.industry));
     if (regions.length) list = list.filter((a) => regions.includes(a.region));
-    switch (sortBy) {
-      case "score":
-        list = [...list].sort((a, b) => b.score - a.score);
-        break;
-      case "budget":
-        list = [...list].sort((a, b) => b.itBudgetUSD - a.itBudgetUSD);
-        break;
-      case "deviceAge":
-        list = [...list].sort((a, b) => b.deviceAgeYears - a.deviceAgeYears);
-        break;
-      case "renewal":
-        list = [...list].sort((a, b) => a.contractRenewalDays - b.contractRenewalDays);
-        break;
-    }
     return list;
-  }, [scoredAccounts, category, industries, regions, sortBy]);
+  }, [scoredAccounts, industries, regions, overrides]);
+
+  const sorted = useMemo(() => {
+    const arr = [...accounts];
+    switch (sortBy) {
+      case "score": arr.sort((a, b) => b.score - a.score); break;
+      case "budget": arr.sort((a, b) => b.itBudgetUSD - a.itBudgetUSD); break;
+      case "deviceAge": arr.sort((a, b) => b.deviceAgeYears - a.deviceAgeYears); break;
+      case "renewal": arr.sort((a, b) => a.contractRenewalDays - b.contractRenewalDays); break;
+    }
+    return arr;
+  }, [accounts, sortBy]);
+
+  function handleDragStart(e: React.DragEvent, id: string) {
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
+  }
+  function handleDrop(e: React.DragEvent, col: Category) {
+    e.preventDefault();
+    setDragOver(null);
+    const id = e.dataTransfer.getData("text/plain");
+    if (!id) return;
+    const a = sorted.find((x) => x.id === id);
+    if (!a || a.category === col) return;
+    setOverrides((o) => ({ ...o, [id]: col }));
+    toast.success(`Moved ${a.accountName} → ${CATEGORY_META[col].label}`);
+  }
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Accounts</h1>
-        <p className="text-sm text-muted-foreground">
-          Showing {filtered.length} of {scoredAccounts.length} accounts
-        </p>
-      </div>
-
-      <div className="sticky top-16 z-10 flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 shadow-sm">
-        <div className="flex flex-wrap gap-1">
-          {CATEGORIES.map((c) => {
-            const active = c === category;
-            const color = c === "ALL" ? "var(--primary)" : CATEGORY_META[c as Category].color;
-            return (
-              <button
-                key={c}
-                onClick={() => setCategory(c)}
-                className={cn(
-                  "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
-                  active ? "border-transparent text-white" : "border-border text-muted-foreground hover:bg-accent",
-                )}
-                style={active ? { backgroundColor: color } : undefined}
-              >
-                {c === "ALL" ? "All" : CATEGORY_META[c as Category].label}
-              </button>
-            );
-          })}
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <span className="label-eyebrow">Portfolio</span>
+          <h1 className="serif mt-1 text-3xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+            Accounts
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {sorted.length} of {scoredAccounts.length} accounts shown
+          </p>
         </div>
-
-        <MultiSelect
-          label="Industry"
-          options={INDUSTRIES}
-          selected={industries}
-          onChange={setIndustries as (s: string[]) => void}
-        />
-        <MultiSelect
-          label="Region"
-          options={REGIONS}
-          selected={regions}
-          onChange={setRegions as (s: string[]) => void}
-        />
-
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Sort</span>
-          <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
-            <SelectTrigger className="h-8 w-44 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="score">Score ↓</SelectItem>
-              <SelectItem value="budget">Budget ↓</SelectItem>
-              <SelectItem value="deviceAge">Device Age ↓</SelectItem>
-              <SelectItem value="renewal">Renewal ↑</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-1 rounded-md bg-accent p-1">
+          <ToggleBtn active={view === "board"} onClick={() => setView("board")}>
+            <LayoutGrid className="h-3.5 w-3.5" /> Board
+          </ToggleBtn>
+          <ToggleBtn active={view === "list"} onClick={() => setView("list")}>
+            <List className="h-3.5 w-3.5" /> List
+          </ToggleBtn>
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      <div className="flex flex-wrap items-center gap-3">
+        <MultiSelect label="Industry" options={INDUSTRIES} selected={industries} onChange={setIndustries as (s: string[]) => void} />
+        <MultiSelect label="Region" options={REGIONS} selected={regions} onChange={setRegions as (s: string[]) => void} />
+        {view === "list" && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Sort</span>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <SelectTrigger className="h-8 w-44 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="score">Score ↓</SelectItem>
+                <SelectItem value="budget">Budget ↓</SelectItem>
+                <SelectItem value="deviceAge">Device Age ↓</SelectItem>
+                <SelectItem value="renewal">Renewal ↑</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+
+      {sorted.length === 0 ? (
         <div className="app-card flex flex-col items-center gap-2 p-12 text-center">
           <Inbox className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No accounts match the current filters.</p>
         </div>
+      ) : view === "board" ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {COLUMNS.map((cat) => {
+            const items = sorted
+              .filter((a) => a.category === cat)
+              .sort((a, b) => b.score - a.score);
+            const total = items.reduce((s, a) => s + a.itBudgetUSD, 0);
+            const color = CATEGORY_META[cat].color;
+            return (
+              <div
+                key={cat}
+                onDragOver={(e) => { e.preventDefault(); setDragOver(cat); }}
+                onDragLeave={() => setDragOver((d) => (d === cat ? null : d))}
+                onDrop={(e) => handleDrop(e, cat)}
+                className={cn(
+                  "flex min-h-[300px] flex-col rounded-lg p-3 transition-colors",
+                  dragOver === cat && "swimlane-dragover",
+                )}
+                style={{ backgroundColor: "color-mix(in oklab, var(--muted) 60%, transparent)" }}
+              >
+                <div className="mb-3 flex items-center justify-between border-b pb-2">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color }}>
+                        {CATEGORY_META[cat].label}
+                      </span>
+                      <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
+                        {items.length}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 text-[10px] text-muted-foreground">
+                      {formatCurrencyShort(total)} pipeline
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col gap-2">
+                  {items.map((a: ScoredAccount) => (
+                    <SwimlaneCard
+                      key={a.id}
+                      account={a}
+                      overridden={!!overrides[a.id]}
+                      onDragStart={handleDragStart}
+                    />
+                  ))}
+                  {items.length === 0 && (
+                    <div className="mt-2 rounded border-2 border-dashed border-border p-4 text-center text-[11px] text-muted-foreground">
+                      Drop accounts here
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {filtered.map((a) => (
+          {sorted.map((a) => (
             <AccountCard key={a.id} account={a} />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+function ToggleBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors",
+        active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -14,16 +14,20 @@ export function TopBar() {
     }, 1500);
   }
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-4 border-b bg-card px-4 md:px-6">
-      <div className="flex-1">
+    <header className="sticky top-0 z-20 flex h-14 items-center gap-4 border-b bg-card/80 px-4 backdrop-blur md:px-6">
+      <div className="flex items-center gap-2">
+        <span className="pulse-dot inline-block h-2 w-2 rounded-full" style={{ backgroundColor: "var(--success)" }} />
+        <span className="label-eyebrow">Active IQ · Live</span>
+      </div>
+      <div className="flex-1 max-w-xl">
         <GlobalSearch />
       </div>
-      <Button variant="outline" onClick={sync} disabled={syncing} className="gap-2">
-        <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-        <span className="hidden sm:inline">Sync Active IQ</span>
+      <Button variant="outline" size="sm" onClick={sync} disabled={syncing} className="gap-2">
+        <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+        <span className="hidden sm:inline">Sync</span>
       </Button>
       <div
-        className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold text-white"
+        className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white"
         style={{ backgroundColor: "var(--primary)" }}
       >
         JD

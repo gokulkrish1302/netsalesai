@@ -1,90 +1,81 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, ClipboardList, Trophy, Bell, Settings, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type NavItem = {
   to: "/" | "/accounts" | "/leaderboard" | "/renewals" | "/settings";
   label: string;
-  icon: typeof Home;
+  icon: typeof LayoutDashboard;
   exact?: boolean;
   badge?: boolean;
 };
 
 const items: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: Home, exact: true },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/accounts", label: "Accounts", icon: ClipboardList },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/renewals", label: "Renewal Alerts", icon: Bell, badge: true },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
+export const SIDEBAR_W = 56;
+
 export function Sidebar() {
-  const [open, setOpen] = useState(true);
   const path = useRouterState({ select: (s) => s.location.pathname });
   const { scoredAccounts } = useApp();
   const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
 
   return (
-    <>
-      {/* Desktop sidebar */}
+    <TooltipProvider delayDuration={150}>
+      {/* Desktop slim sidebar */}
       <aside
-        className={cn(
-          "fixed left-0 top-0 z-30 hidden h-screen flex-col border-r bg-sidebar transition-all duration-200 md:flex",
-          open ? "w-[220px]" : "w-[64px]",
-        )}
+        className="fixed left-0 top-0 z-30 hidden h-screen flex-col items-center bg-sidebar md:flex"
+        style={{ width: SIDEBAR_W, boxShadow: "1px 0 0 0 var(--border)" }}
       >
-        <div className="flex h-16 items-center justify-between border-b px-4">
-          {open ? (
-            <span className="text-lg font-bold tracking-tight" style={{ color: "var(--primary)" }}>
-              NetApp
-            </span>
-          ) : (
-            <span className="text-lg font-bold" style={{ color: "var(--primary)" }}>
-              N
-            </span>
-          )}
-          <button
-            onClick={() => setOpen((o) => !o)}
-            className="rounded-md p-1 text-muted-foreground hover:bg-accent"
-            aria-label="Toggle sidebar"
-          >
-            {open ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-          </button>
+        <div
+          className="serif flex h-14 w-full items-center justify-center text-2xl font-bold"
+          style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
+        >
+          N
         </div>
-        <nav className="flex-1 space-y-1 p-2">
+        <nav className="flex w-full flex-col items-center gap-1 py-2">
           {items.map((item) => {
             const Icon = item.icon;
             const active = item.exact ? path === item.to : path.startsWith(item.to);
             return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                )}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {open && <span className="flex-1 truncate">{item.label}</span>}
-                {open && item.badge && urgentCount > 0 && (
-                  <span
-                    className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-bold text-white"
-                    style={{ backgroundColor: "var(--hot)" }}
+              <Tooltip key={item.to}>
+                <TooltipTrigger asChild>
+                  <Link
+                    to={item.to}
+                    className={cn(
+                      "relative flex h-12 w-12 items-center justify-center rounded-md transition-colors",
+                      active ? "text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    )}
+                    aria-label={item.label}
                   >
-                    {urgentCount}
-                  </span>
-                )}
-                {!open && item.badge && urgentCount > 0 && (
-                  <span
-                    className="absolute right-1 top-1 h-2 w-2 rounded-full"
-                    style={{ backgroundColor: "var(--hot)" }}
-                  />
-                )}
-              </Link>
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r"
+                        style={{ backgroundColor: "var(--primary)" }}
+                      />
+                    )}
+                    <Icon className="h-5 w-5" />
+                    {item.badge && urgentCount > 0 && (
+                      <span
+                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white"
+                        style={{ backgroundColor: "var(--hot)" }}
+                      />
+                    )}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="text-xs">
+                  {item.label}
+                  {item.badge && urgentCount > 0 && ` · ${urgentCount}`}
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </nav>
@@ -116,8 +107,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-    </>
+    </TooltipProvider>
   );
 }
-
-export const SIDEBAR_W = { open: 220, closed: 64 };

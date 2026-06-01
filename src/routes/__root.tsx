@@ -63,7 +63,7 @@ function RootComponent() {
         <ModalsProvider>
           <div className="min-h-screen bg-background">
             <Sidebar />
-            <div className="md:pl-[220px]">
+            <div className="md:pl-[56px]">
               <TopBar />
               <main className="p-4 pb-20 md:p-6 md:pb-6">
                 <Outlet />

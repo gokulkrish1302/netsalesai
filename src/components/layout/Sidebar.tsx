@@ -20,7 +20,7 @@ const items: NavItem[] = [
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export const SIDEBAR_W = 56;
+export const SIDEBAR_W = 72;
 
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -28,19 +28,21 @@ export function Sidebar() {
   const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
 
   return (
-    <TooltipProvider delayDuration={150}>
-      {/* Desktop slim sidebar */}
+    <TooltipProvider delayDuration={200}>
+      {/* Desktop slim Material sidebar */}
       <aside
         className="fixed left-0 top-0 z-30 hidden h-screen flex-col items-center bg-sidebar md:flex"
-        style={{ width: SIDEBAR_W, boxShadow: "1px 0 0 0 var(--border)" }}
+        style={{ width: SIDEBAR_W }}
       >
-        <div
-          className="serif flex h-14 w-full items-center justify-center text-2xl font-bold"
-          style={{ color: "var(--primary)", letterSpacing: "-0.02em" }}
-        >
-          N
+        <div className="flex h-16 w-full items-center justify-center">
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-2xl text-base font-bold text-white"
+            style={{ backgroundColor: "var(--primary)", fontFamily: "var(--font-display)" }}
+          >
+            N
+          </div>
         </div>
-        <nav className="flex w-full flex-col items-center gap-1 py-2">
+        <nav className="flex w-full flex-col items-center gap-2 py-2">
           {items.map((item) => {
             const Icon = item.icon;
             const active = item.exact ? path === item.to : path.startsWith(item.to);
@@ -49,26 +51,36 @@ export function Sidebar() {
                 <TooltipTrigger asChild>
                   <Link
                     to={item.to}
-                    className={cn(
-                      "relative flex h-12 w-12 items-center justify-center rounded-md transition-colors",
-                      active ? "text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                    )}
+                    className="group flex flex-col items-center gap-1 py-1"
                     aria-label={item.label}
                   >
-                    {active && (
-                      <span
-                        aria-hidden
-                        className="absolute left-0 top-1/2 h-7 w-[3px] -translate-y-1/2 rounded-r"
-                        style={{ backgroundColor: "var(--primary)" }}
-                      />
-                    )}
-                    <Icon className="h-5 w-5" />
-                    {item.badge && urgentCount > 0 && (
-                      <span
-                        className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-white"
-                        style={{ backgroundColor: "var(--hot)" }}
-                      />
-                    )}
+                    <span
+                      className={cn(
+                        "relative flex h-9 w-14 items-center justify-center rounded-full transition-all",
+                        active
+                          ? "text-on-primary-container"
+                          : "text-muted-foreground group-hover:bg-accent group-hover:text-foreground",
+                      )}
+                      style={active ? { backgroundColor: "var(--primary-container)" } : undefined}
+                    >
+                      <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
+                      {item.badge && urgentCount > 0 && (
+                        <span
+                          className="absolute -right-0 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-sidebar"
+                          style={{ backgroundColor: "var(--hot)" }}
+                        >
+                          {urgentCount}
+                        </span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-[10px] font-medium transition-colors",
+                        active ? "text-foreground" : "text-muted-foreground",
+                      )}
+                    >
+                      {item.label.split(" ")[0]}
+                    </span>
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-xs">
@@ -92,10 +104,15 @@ export function Sidebar() {
               to={item.to}
               className={cn(
                 "relative flex flex-col items-center gap-1 py-2 text-[10px]",
-                active ? "text-primary" : "text-muted-foreground",
+                active ? "text-on-primary-container" : "text-muted-foreground",
               )}
             >
-              <Icon className="h-5 w-5" />
+              <span
+                className="flex h-7 w-12 items-center justify-center rounded-full"
+                style={active ? { backgroundColor: "var(--primary-container)" } : undefined}
+              >
+                <Icon className="h-4 w-4" />
+              </span>
               <span className="truncate">{item.label.split(" ")[0]}</span>
               {item.badge && urgentCount > 0 && (
                 <span

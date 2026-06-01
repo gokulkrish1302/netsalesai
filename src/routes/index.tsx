@@ -1,29 +1,42 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { KpiRow } from "@/components/dashboard/KpiRow";
+import { AlertBanner } from "@/components/dashboard/AlertBanner";
+import { FocusCard } from "@/components/dashboard/FocusCard";
+import { CategoryDonut } from "@/components/dashboard/CategoryDonut";
+import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
+import { PriorityTable } from "@/components/dashboard/PriorityTable";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "Dashboard — NetApp Cloud Migration Agent" },
+      {
+        name: "description",
+        content:
+          "Overview of HOT leads, pipeline value, and renewal urgency across NetApp's enterprise accounts.",
+      },
     ],
   }),
-  component: Index,
+  component: Dashboard,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+function Dashboard() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Cloud migration opportunity across 20 enterprise accounts
+        </p>
+      </div>
+      <KpiRow />
+      <AlertBanner />
+      <FocusCard />
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <CategoryDonut />
+        <TopAccountsBar />
+      </div>
+      <PriorityTable />
     </div>
   );
 }

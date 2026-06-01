@@ -7,32 +7,34 @@ import {
 import { useApp } from "@/state/AppStore";
 import { ScoreGauge } from "@/components/common/ScoreGauge";
 import { CategoryPill } from "@/components/common/CategoryPill";
-import { CategoryDot } from "@/components/common/CategoryPill";
-import { CompetitiveRiskBadge } from "@/components/common/CompetitiveRiskBadge";
-import { RenewalCountdown } from "@/components/common/RenewalCountdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, ClipboardList, Phone, FileDown, AlertOctagon, Check } from "lucide-react";
+import { Mail, ClipboardList, Phone, FileDown, AlertOctagon } from "lucide-react";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { useState } from "react";
 import { toast } from "sonner";
 import { CATEGORY_META } from "@/lib/scoring";
 import { formatCurrencyShort, formatPct, formatDate, STAGE_LABEL, STAGE_ORDER } from "@/lib/format";
 import type { PipelineStage } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
+} from "recharts";
 
-const BREAKDOWN_LABELS: Record<string, { label: string; max: number; key: keyof ReturnType<typeof reasonsOf> }> = {
-  deviceAge: { label: "Device Age", max: 20, key: "deviceAge" },
-  utilization: { label: "Storage Utilization", max: 15, key: "utilization" },
-  budget: { label: "IT Budget", max: 25, key: "budget" },
-  cloud: { label: "Cloud Readiness", max: 25, key: "cloud" },
-  industry: { label: "Industry Fit", max: 10, key: "industry" },
-  renewal: { label: "Renewal Urgency", max: 5, key: "renewal" },
+const BREAKDOWN_LABELS: Record<string, { label: string; short: string; max: number }> = {
+  deviceAge: { label: "Device Age", short: "Device", max: 20 },
+  utilization: { label: "Storage Utilization", short: "Storage", max: 15 },
+  budget: { label: "IT Budget", short: "Budget", max: 25 },
+  cloud: { label: "Cloud Readiness", short: "Cloud", max: 25 },
+  industry: { label: "Industry Fit", short: "Industry", max: 10 },
+  renewal: { label: "Renewal Urgency", short: "Renewal", max: 5 },
 };
 
-function reasonsOf<T extends { reasons: Record<string, string> }>(a: T) {
-  return a.reasons;
-}
+const KEYS = ["deviceAge", "utilization", "budget", "cloud", "industry", "renewal"] as const;
 
 export function AccountDetailPanel() {
   const { activeAccount, openAccount, state, addNote, setStage } = useApp();
@@ -49,45 +51,55 @@ export function AccountDetailPanel() {
     toast.success("💾 Note saved");
   }
 
+  const radarData = a
+    ? KEYS.map((k) => ({
+        criterion: BREAKDOWN_LABELS[k].short,
+        score: Math.round((a.breakdown[k] / BREAKDOWN_LABELS[k].max) * 100),
+      }))
+    : [];
+
+  const currentStage = a ? ((state.pipelineStages[a.id] ?? a.pipelineStage) as PipelineStage) : "not_contacted";
+  const currentIdx = STAGE_ORDER.indexOf(currentStage);
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && openAccount(null)}>
-      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-[480px]">
+      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-[560px]">
         {a && (
           <div className="flex flex-col">
             <SheetHeader className="border-b p-5">
-              <SheetTitle className="text-xl">{a.accountName}</SheetTitle>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>{a.industry}</span>
-                <span>·</span>
-                <span>{a.region}</span>
-                <span>·</span>
-                <span>{a.companySize}</span>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <span className="label-eyebrow">{a.industry} · {a.region}</span>
+                  <SheetTitle className="serif mt-1 text-2xl font-normal leading-tight" style={{ letterSpacing: "-0.01em" }}>
+                    {a.accountName}
+                  </SheetTitle>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <CategoryPill category={a.category} />
+                    <span>·</span>
+                    <span>{a.companySize}</span>
+                    <span>·</span>
+                    <span>Rep: {a.salesRep}</span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <ScoreGauge score={a.score} category={a.category} size={80} />
+                </div>
               </div>
             </SheetHeader>
 
             <div className="space-y-6 p-5">
-              {/* Gauge */}
-              <div className="flex flex-col items-center gap-2">
-                <ScoreGauge score={a.score} category={a.category} />
-                <CategoryPill category={a.category} />
-              </div>
-
               {/* Competitive risk warning */}
               {a.endOfLife && a.cloudStatus === "none" && (
                 <div
-                  className="rounded-md border p-3 text-sm"
-                  style={{
-                    borderColor: "var(--hot)",
-                    backgroundColor: "var(--hot-bg)",
-                    color: "var(--hot)",
-                  }}
+                  className="rounded-md p-3 text-sm"
+                  style={{ backgroundColor: "var(--hot-bg)", color: "var(--hot)" }}
                 >
                   <div className="mb-2 flex items-center gap-2 font-semibold">
                     <AlertOctagon className="h-4 w-4" />
                     Competitive Risk
                   </div>
                   <p className="mb-3 text-foreground">
-                    This device is end-of-life with no cloud adoption recorded. Without proactive
+                    Device is end-of-life with no cloud adoption recorded. Without proactive
                     outreach, this account is at risk of migrating to a competitor cloud platform.
                   </p>
                   <Button size="sm" onClick={() => modals.openEmail(a)}>
@@ -96,41 +108,51 @@ export function AccountDetailPanel() {
                 </div>
               )}
 
-              {/* Score breakdown */}
+              {/* Score Radar */}
               <section>
-                <h3 className="mb-3 text-sm font-semibold">Score Breakdown</h3>
-                <div className="space-y-3">
-                  {(["deviceAge", "utilization", "budget", "cloud", "industry", "renewal"] as const).map(
-                    (k) => {
-                      const meta = BREAKDOWN_LABELS[k];
-                      const val = a.breakdown[k];
-                      const pct = (val / meta.max) * 100;
-                      return (
-                        <div key={k}>
-                          <div className="mb-1 flex items-center justify-between text-xs">
-                            <span className="font-medium">{meta.label}</span>
-                            <span className="text-muted-foreground tabular-nums">
-                              {val}/{meta.max}
-                            </span>
-                          </div>
-                          <div className="h-1.5 overflow-hidden rounded bg-secondary">
-                            <div
-                              className="h-full transition-all duration-500"
-                              style={{ width: `${pct}%`, backgroundColor: "var(--primary)" }}
-                            />
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">{a.reasons[k]}</p>
-                        </div>
-                      );
-                    },
-                  )}
+                <span className="label-eyebrow">Score Profile</span>
+                <div className="mt-2 h-[260px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData} margin={{ top: 12, right: 24, bottom: 12, left: 24 }}>
+                      <PolarGrid stroke="var(--border)" />
+                      <PolarAngleAxis
+                        dataKey="criterion"
+                        tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                      />
+                      <PolarRadiusAxis
+                        angle={90}
+                        domain={[0, 100]}
+                        tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+                        stroke="var(--border)"
+                      />
+                      <Radar
+                        dataKey="score"
+                        stroke="var(--primary)"
+                        strokeWidth={2}
+                        fill="var(--primary)"
+                        fillOpacity={0.4}
+                        dot={{ fill: "var(--primary)", r: 3 }}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[11px]">
+                  {KEYS.map((k) => (
+                    <div key={k} className="flex items-start gap-1.5">
+                      <span
+                        className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: "var(--primary)" }}
+                      />
+                      <span className="text-muted-foreground leading-snug">{a.reasons[k]}</span>
+                    </div>
+                  ))}
                 </div>
               </section>
 
               {/* Account intel grid */}
               <section>
-                <h3 className="mb-3 text-sm font-semibold">Account Intel</h3>
-                <div className="grid grid-cols-2 gap-3 text-xs">
+                <span className="label-eyebrow">Account Intel</span>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
                   <IntelCell label="Device" value={`${a.deviceModel}${a.endOfLife ? " · EOL" : ""}`} />
                   <IntelCell label="Storage" value={`${a.storageCapacityTB} TB · ${formatPct(a.utilizationPct)}`} />
                   <IntelCell label="IT Budget" value={formatCurrencyShort(a.itBudgetUSD)} />
@@ -140,51 +162,68 @@ export function AccountDetailPanel() {
                 </div>
               </section>
 
-              {/* Pipeline stepper */}
+              {/* Pipeline vertical timeline */}
               <section>
-                <h3 className="mb-3 text-sm font-semibold">Pipeline Stage</h3>
-                <div className="flex flex-wrap items-center gap-1">
+                <span className="label-eyebrow">Pipeline</span>
+                <ol className="mt-3 space-y-0">
                   {STAGE_ORDER.map((s, i) => {
-                    const currentIdx = STAGE_ORDER.indexOf(
-                      (state.pipelineStages[a.id] ?? a.pipelineStage) as PipelineStage,
-                    );
-                    const active = i <= currentIdx;
+                    const completed = i < currentIdx;
+                    const current = i === currentIdx;
+                    const future = i > currentIdx;
+                    const last = i === STAGE_ORDER.length - 1;
+                    const histEntry = (state.stageHistory[a.id] ?? []).find((h) => h.stage === s);
                     return (
-                      <button
-                        key={s}
-                        onClick={() => setStage(a.id, s)}
-                        className={cn(
-                          "flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-medium transition-colors",
-                          active
-                            ? "border-transparent text-white"
-                            : "border-border text-muted-foreground hover:bg-accent",
+                      <li key={s} className="relative flex gap-3 pb-4 last:pb-0">
+                        {!last && (
+                          <span
+                            className="absolute left-[5px] top-3 h-full w-px"
+                            style={{ backgroundColor: completed ? "var(--primary)" : "var(--border)" }}
+                          />
                         )}
-                        style={active ? { backgroundColor: "var(--primary)" } : undefined}
-                      >
-                        {i <= currentIdx && <Check className="h-3 w-3" />}
-                        {STAGE_LABEL[s]}
-                      </button>
+                        <button
+                          onClick={() => setStage(a.id, s)}
+                          className="relative z-10 mt-1 flex h-3 w-3 shrink-0 items-center justify-center rounded-full"
+                          aria-label={`Set stage ${STAGE_LABEL[s]}`}
+                          style={{
+                            backgroundColor: completed || current ? "var(--primary)" : "transparent",
+                            border: `2px solid ${future ? "var(--border)" : "var(--primary)"}`,
+                          }}
+                        >
+                          {current && (
+                            <span
+                              className="pulse-dot absolute inset-0 rounded-full"
+                              style={{ backgroundColor: "var(--primary)", opacity: 0.4 }}
+                            />
+                          )}
+                        </button>
+                        <div className="flex-1 -mt-0.5">
+                          <button
+                            onClick={() => setStage(a.id, s)}
+                            className={`text-left text-sm hover:underline ${
+                              current ? "font-semibold text-foreground" : completed ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
+                            {STAGE_LABEL[s]}
+                          </button>
+                          {histEntry && (
+                            <div className="text-[10px] text-muted-foreground">{formatDate(histEntry.date)}</div>
+                          )}
+                        </div>
+                      </li>
                     );
                   })}
-                </div>
-                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                  {(state.stageHistory[a.id] ?? []).slice(-5).reverse().map((h, i) => (
-                    <li key={i}>
-                      Moved to <span className="font-medium text-foreground">{STAGE_LABEL[h.stage]}</span>{" "}
-                      — {formatDate(h.date)}
-                    </li>
-                  ))}
-                </ul>
+                </ol>
               </section>
 
               {/* Notes */}
               <section>
-                <h3 className="mb-2 text-sm font-semibold">Notes</h3>
+                <span className="label-eyebrow">Notes</span>
                 <Textarea
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   rows={3}
                   placeholder="Add a note for this account..."
+                  className="mt-2"
                 />
                 <div className="mt-2 flex justify-end">
                   <Button size="sm" onClick={saveNote} disabled={!noteText.trim()}>
@@ -193,7 +232,7 @@ export function AccountDetailPanel() {
                 </div>
                 <div className="mt-3 space-y-2">
                   {(state.notes[a.id] ?? []).map((n) => (
-                    <div key={n.id} className="rounded-md border bg-background p-2 text-sm">
+                    <div key={n.id} className="rounded-md bg-secondary p-2 text-sm">
                       <p>{n.text}</p>
                       <p className="mt-1 text-[10px] text-muted-foreground">{formatDate(n.createdAt)}</p>
                     </div>
@@ -203,13 +242,13 @@ export function AccountDetailPanel() {
 
               {/* Call history */}
               <section>
-                <h3 className="mb-2 text-sm font-semibold">Call History</h3>
+                <span className="label-eyebrow">Call History</span>
                 {(state.callLogs[a.id] ?? []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No calls logged yet.</p>
+                  <p className="mt-2 text-xs text-muted-foreground">No calls logged yet.</p>
                 ) : (
-                  <ul className="space-y-2">
+                  <ul className="mt-2 space-y-2">
                     {(state.callLogs[a.id] ?? []).map((c) => (
-                      <li key={c.id} className="rounded-md border bg-background p-2 text-xs">
+                      <li key={c.id} className="rounded-md bg-secondary p-2 text-xs">
                         <div className="flex items-center justify-between">
                           <span className="font-medium">{c.outcome}</span>
                           <span className="text-muted-foreground">{formatDate(c.date)}</span>
@@ -224,7 +263,6 @@ export function AccountDetailPanel() {
                 )}
               </section>
 
-              {/* Action buttons */}
               <div className="flex flex-wrap gap-2 border-t pt-4">
                 <Button size="sm" onClick={() => modals.openEmail(a)}>
                   <Mail className="mr-1 h-3.5 w-3.5" /> Email
@@ -249,7 +287,7 @@ export function AccountDetailPanel() {
 
 function IntelCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-background p-2">
+    <div className="rounded-md bg-secondary p-2">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
       <div className="mt-0.5 text-sm font-semibold">{value}</div>
     </div>
@@ -266,7 +304,4 @@ function cloudLabel(s: string) {
         : "None";
 }
 
-// silence unused
-void CategoryDot;
 void CATEGORY_META;
-void RenewalCountdown;

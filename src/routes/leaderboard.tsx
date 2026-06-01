@@ -2,9 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/state/AppStore";
-import { CategoryPill } from "@/components/common/CategoryPill";
-import { ScoreBar } from "@/components/common/ScoreBar";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
+import { CATEGORY_META } from "@/lib/scoring";
 import { STAGE_LABEL, formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -12,7 +10,7 @@ export const Route = createFileRoute("/leaderboard")({
   head: () => ({
     meta: [
       { title: "Leaderboard — NetApp Cloud Migration Agent" },
-      { name: "description", content: "Top 20 accounts ranked by score, renewal urgency, or budget." },
+      { name: "description", content: "Ranked heat-map leaderboard of accounts by score, renewal urgency, or budget." },
     ],
   }),
   component: LeaderboardPage,
@@ -20,29 +18,11 @@ export const Route = createFileRoute("/leaderboard")({
 
 type Sort = "score" | "renewal" | "budget";
 
-// Hardcoded small deltas per account for demo "score change"
-const DELTAS: Record<string, number> = {
-  "acc-01": 3,
-  "acc-02": 1,
-  "acc-03": -2,
-  "acc-04": 5,
-  "acc-05": 0,
-  "acc-06": -1,
-  "acc-07": 2,
-  "acc-08": 4,
-  "acc-09": -3,
-  "acc-10": 1,
-  "acc-11": -2,
-  "acc-12": 0,
-  "acc-13": 2,
-  "acc-14": -1,
-  "acc-15": 1,
-  "acc-16": -4,
-  "acc-17": 0,
-  "acc-18": 0,
-  "acc-19": 1,
-  "acc-20": -1,
-};
+const MEDAL_COLORS: [string, string][] = [
+  ["#F59E0B", "Gold"],
+  ["#9CA3AF", "Silver"],
+  ["#B45309", "Bronze"],
+];
 
 function LeaderboardPage() {
   const { scoredAccounts } = useApp();
@@ -59,8 +39,13 @@ function LeaderboardPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Leaderboard</h1>
-        <p className="text-sm text-muted-foreground">Top 20 accounts across the portfolio</p>
+        <span className="label-eyebrow">Heat Map</span>
+        <h1 className="serif mt-1 text-3xl tracking-tight" style={{ letterSpacing: "-0.02em" }}>
+          Leaderboard
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Each row's tint shows where it stands — the longer the color, the higher the rank.
+        </p>
       </div>
 
       <div className="flex gap-2">
@@ -69,65 +54,83 @@ function LeaderboardPage() {
             key={s}
             onClick={() => setSort(s)}
             className={cn(
-              "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
-              sort === s
-                ? "border-transparent text-white"
-                : "border-border bg-card text-muted-foreground hover:bg-accent",
+              "rounded-full px-3 py-1 text-xs font-semibold transition-colors",
+              sort === s ? "text-white" : "bg-card text-muted-foreground hover:bg-accent",
             )}
-            style={sort === s ? { backgroundColor: "var(--primary)" } : undefined}
+            style={sort === s ? { backgroundColor: "var(--primary)" } : { boxShadow: "var(--shadow-editorial)" }}
           >
             {s === "score" ? "By Score" : s === "renewal" ? "By Renewal Urgency" : "By Budget"}
           </button>
         ))}
       </div>
 
-      <div className="app-card overflow-hidden">
-        <div className="grid grid-cols-12 gap-3 border-b bg-secondary px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          <div className="col-span-1">Rank</div>
-          <div className="col-span-3">Account</div>
-          <div className="col-span-3">Score</div>
-          <div className="col-span-1">Cat</div>
-          <div className="col-span-2">Sales Rep</div>
-          <div className="col-span-1">Δ</div>
-          <div className="col-span-1">Stage</div>
-        </div>
+      <div className="flex flex-col gap-1.5">
         <AnimatePresence initial={false}>
           {ranked.map((a, i) => {
-            const delta = DELTAS[a.id] ?? 0;
-            const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+            const color = CATEGORY_META[a.category].color;
+            const fillPct =
+              sort === "renewal"
+                ? Math.max(8, 100 - Math.min(100, (a.contractRenewalDays / 730) * 100))
+                : sort === "budget"
+                  ? Math.max(8, (a.itBudgetUSD / 3_000_000) * 100)
+                  : Math.max(8, a.score);
+            const medal = i < 3 ? MEDAL_COLORS[i] : null;
+            const rightText =
+              sort === "budget"
+                ? formatCurrencyShort(a.itBudgetUSD)
+                : sort === "renewal"
+                  ? `${a.contractRenewalDays}d`
+                  : String(a.score);
             return (
               <motion.div
                 key={a.id}
                 layout
                 transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                className="grid grid-cols-12 items-center gap-3 border-b px-4 py-3 text-sm last:border-0"
+                className="relative overflow-hidden rounded-md bg-card"
+                style={{
+                  boxShadow: medal
+                    ? `inset 4px 0 0 ${medal[0]}, 0 0 12px -4px ${medal[0]}55, var(--shadow-editorial)`
+                    : "var(--shadow-editorial)",
+                }}
               >
-                <div className="col-span-1 text-lg font-bold tabular-nums">{medal}</div>
-                <div className="col-span-3">
-                  <div className="font-medium">{a.accountName}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {sort === "budget"
-                      ? formatCurrencyShort(a.itBudgetUSD)
-                      : sort === "renewal"
-                        ? `Renews in ${a.contractRenewalDays}d`
-                        : `${a.industry} · ${a.region}`}
+                {/* Heat fill background */}
+                <div
+                  className="absolute inset-y-0 left-0 transition-all duration-500"
+                  style={{
+                    width: `${fillPct}%`,
+                    backgroundColor: color,
+                    opacity: 0.12,
+                  }}
+                />
+                <div className="relative grid grid-cols-12 items-center gap-3 px-4 py-3">
+                  <div className="col-span-1 flex items-center gap-1">
+                    <span className="serif text-[26px] tabular-nums" style={{ lineHeight: 1, color: medal ? medal[0] : "var(--foreground)" }}>
+                      {i + 1}
+                    </span>
                   </div>
-                </div>
-                <div className="col-span-3 flex items-center gap-2">
-                  <span className="w-6 text-right text-xs font-bold tabular-nums">{a.score}</span>
-                  <div className="flex-1">
-                    <ScoreBar value={a.score} category={a.category} />
+                  <div className="col-span-5 min-w-0">
+                    <div className="truncate text-sm font-semibold">{a.accountName}</div>
+                    <div className="truncate text-[11px] text-muted-foreground">
+                      {a.industry} · {a.region} · {a.salesRep}
+                    </div>
                   </div>
-                </div>
-                <div className="col-span-1">
-                  <CategoryPill category={a.category} />
-                </div>
-                <div className="col-span-2 truncate text-xs text-muted-foreground">{a.salesRep}</div>
-                <div className="col-span-1">
-                  <DeltaPill delta={delta} />
-                </div>
-                <div className="col-span-1 truncate text-xs text-muted-foreground">
-                  {STAGE_LABEL[a.pipelineStage]}
+                  <div className="col-span-3 text-[11px] text-muted-foreground">
+                    {STAGE_LABEL[a.pipelineStage]}
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end gap-2">
+                    <span
+                      className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {CATEGORY_META[a.category].label}
+                    </span>
+                    <span
+                      className="serif text-xl tabular-nums"
+                      style={{ color, letterSpacing: "-0.02em" }}
+                    >
+                      {rightText}
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             );
@@ -135,16 +138,5 @@ function LeaderboardPage() {
         </AnimatePresence>
       </div>
     </div>
-  );
-}
-
-function DeltaPill({ delta }: { delta: number }) {
-  const Icon = delta > 0 ? ArrowUp : delta < 0 ? ArrowDown : Minus;
-  const color = delta > 0 ? "var(--success)" : delta < 0 ? "var(--hot)" : "var(--muted-foreground)";
-  return (
-    <span className="inline-flex items-center gap-0.5 text-xs font-semibold tabular-nums" style={{ color }}>
-      <Icon className="h-3 w-3" />
-      {delta === 0 ? "0" : Math.abs(delta)}
-    </span>
   );
 }

@@ -4,13 +4,21 @@ import { useState } from "react";
 import { useApp } from "@/state/AppStore";
 import { cn } from "@/lib/utils";
 
-const items = [
+type NavItem = {
+  to: "/" | "/accounts" | "/leaderboard" | "/renewals" | "/settings";
+  label: string;
+  icon: typeof Home;
+  exact?: boolean;
+  badge?: boolean;
+};
+
+const items: NavItem[] = [
   { to: "/", label: "Dashboard", icon: Home, exact: true },
   { to: "/accounts", label: "Accounts", icon: ClipboardList },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/renewals", label: "Renewal Alerts", icon: Bell, badge: true },
   { to: "/settings", label: "Settings", icon: Settings },
-] as const;
+];
 
 export function Sidebar() {
   const [open, setOpen] = useState(true);

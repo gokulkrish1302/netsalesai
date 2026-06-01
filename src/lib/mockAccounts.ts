@@ -302,7 +302,7 @@ export const MOCK_ACCOUNTS: Account[] = [
     companySize: "1,800 employees",
     deviceModel: "FAS2720",
     deviceAgeYears: 2.2,
-    endOfLife: false,
+    endOfLife: true,
     storageCapacityTB: 140,
     utilizationPct: 52,
     itBudgetUSD: 120_000,

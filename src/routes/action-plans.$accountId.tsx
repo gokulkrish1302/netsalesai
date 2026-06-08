@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/state/AppStore";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { SourceBadge } from "@/components/common/SourceBadge";
@@ -83,7 +83,7 @@ function initials(name: string) {
 function ActionPlanDetail() {
   const { accountId } = Route.useParams();
   const navigate = useNavigate();
-  const { state, scoredAccounts, setPlanStatus, addPlanActivity, setPlanNextStep, removePlan } = useApp();
+  const { state, scoredAccounts, createPlan, setPlanStatus, addPlanActivity, setPlanNextStep, removePlan } = useApp();
   const { openOutcome } = useModals();
   const [note, setNote] = useState("");
 
@@ -99,6 +99,12 @@ function ActionPlanDetail() {
   const plan = state.actionPlans[accountId];
   const account = scoredAccounts.find((a) => a.id === accountId);
 
+  useEffect(() => {
+    if (account && !plan) {
+      createPlan(account.id, defaultUrgency(account));
+    }
+  }, [account, plan, createPlan]);
+
   const planContent = useMemo(() => (account ? buildActionPlan(account) : null), [account]);
   const timeline = useMemo(
     () => (account && plan ? buildUrgencyTimeline(account, plan.urgency) : []),
@@ -106,6 +112,15 @@ function ActionPlanDetail() {
   );
   const objections = useMemo(() => (account ? buildIndustryObjections(account) : []), [account]);
   const deal = useMemo(() => (account ? estimateDealSize(account) : null), [account]);
+
+  if (account && !plan) {
+    return (
+      <div className="app-card flex flex-col items-center gap-4 p-12 text-center">
+        <Sparkles className="h-10 w-10 text-primary" />
+        <p className="text-sm text-muted-foreground">Creating sales room and recommendations for {account.accountName}…</p>
+      </div>
+    );
+  }
 
   if (!account || !plan) {
     return (

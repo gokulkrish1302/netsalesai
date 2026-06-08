@@ -30,22 +30,12 @@ const BREAKDOWN_LABELS: Record<string, { label: string; short: string; max: numb
   renewal: { label: "Renewal Urgency", short: "Renewal", max: 5 },
 };
 
-const KEYS = ["deviceAge", "utilization", "budget", "cloud", "industry", "renewal"] as const;
-
 export function AccountDetailPanel() {
-  const { activeAccount, openAccount, state, addNote, setStage } = useApp();
-  const modals = useModals();
-  const [noteText, setNoteText] = useState("");
+  const { activeAccount, openAccount } = useApp();
+  const { startCreatePlan } = useModals();
 
   const open = !!activeAccount;
   const a = activeAccount;
-
-  function saveNote() {
-    if (!a || !noteText.trim()) return;
-    addNote(a.id, noteText.trim());
-    setNoteText("");
-    toast.success("💾 Note saved");
-  }
 
   const radarData = a
     ? KEYS.map((k) => ({
@@ -53,9 +43,6 @@ export function AccountDetailPanel() {
         score: Math.round((a.breakdown[k] / BREAKDOWN_LABELS[k].max) * 100),
       }))
     : [];
-
-  const currentStage = a ? ((state.pipelineStages[a.id] ?? a.pipelineStage) as PipelineStage) : "not_contacted";
-  const currentIdx = STAGE_ORDER.indexOf(currentStage);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && openAccount(null)}>
@@ -94,13 +81,10 @@ export function AccountDetailPanel() {
                     <AlertOctagon className="h-4 w-4" />
                     Competitive Risk
                   </div>
-                  <p className="mb-3 text-foreground">
-                    Device is end-of-life with no cloud adoption recorded. Without proactive
-                    outreach, this account is at risk of migrating to a competitor cloud platform.
+                  <p className="text-foreground">
+                    Device is end-of-life with no cloud adoption recorded. Move this account into an
+                    Action Plan to coordinate outreach before it migrates to a competitor.
                   </p>
-                  <Button size="sm" onClick={() => modals.openEmail(a)}>
-                    Draft Urgent Outreach Email
-                  </Button>
                 </div>
               )}
 
@@ -164,121 +148,13 @@ export function AccountDetailPanel() {
                 </div>
               </section>
 
-
-              {/* Pipeline vertical timeline */}
-              <section>
-                <span className="label-eyebrow">Pipeline</span>
-                <ol className="mt-3 space-y-0">
-                  {STAGE_ORDER.map((s, i) => {
-                    const completed = i < currentIdx;
-                    const current = i === currentIdx;
-                    const future = i > currentIdx;
-                    const last = i === STAGE_ORDER.length - 1;
-                    const histEntry = (state.stageHistory[a.id] ?? []).find((h) => h.stage === s);
-                    return (
-                      <li key={s} className="relative flex gap-3 pb-4 last:pb-0">
-                        {!last && (
-                          <span
-                            className="absolute left-[5px] top-3 h-full w-px"
-                            style={{ backgroundColor: completed ? "var(--primary)" : "var(--border)" }}
-                          />
-                        )}
-                        <button
-                          onClick={() => setStage(a.id, s)}
-                          className="relative z-10 mt-1 flex h-3 w-3 shrink-0 items-center justify-center rounded-full"
-                          aria-label={`Set stage ${STAGE_LABEL[s]}`}
-                          style={{
-                            backgroundColor: completed || current ? "var(--primary)" : "transparent",
-                            border: `2px solid ${future ? "var(--border)" : "var(--primary)"}`,
-                          }}
-                        >
-                          {current && (
-                            <span
-                              className="pulse-dot absolute inset-0 rounded-full"
-                              style={{ backgroundColor: "var(--primary)", opacity: 0.4 }}
-                            />
-                          )}
-                        </button>
-                        <div className="flex-1 -mt-0.5">
-                          <button
-                            onClick={() => setStage(a.id, s)}
-                            className={`text-left text-sm hover:underline ${
-                              current ? "font-semibold text-foreground" : completed ? "text-foreground" : "text-muted-foreground"
-                            }`}
-                          >
-                            {STAGE_LABEL[s]}
-                          </button>
-                          {histEntry && (
-                            <div className="text-[10px] text-muted-foreground">{formatDate(histEntry.date)}</div>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-
-              {/* Notes */}
-              <section>
-                <span className="label-eyebrow">Notes</span>
-                <Textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  rows={3}
-                  placeholder="Add a note for this account..."
-                  className="mt-2"
-                />
-                <div className="mt-2 flex justify-end">
-                  <Button size="sm" onClick={saveNote} disabled={!noteText.trim()}>
-                    Save Note
-                  </Button>
-                </div>
-                <div className="mt-3 space-y-2">
-                  {(state.notes[a.id] ?? []).map((n) => (
-                    <div key={n.id} className="rounded-md bg-secondary p-2 text-sm">
-                      <p>{n.text}</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">{formatDate(n.createdAt)}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              {/* Call history */}
-              <section>
-                <span className="label-eyebrow">Call History</span>
-                {(state.callLogs[a.id] ?? []).length === 0 ? (
-                  <p className="mt-2 text-xs text-muted-foreground">No calls logged yet.</p>
-                ) : (
-                  <ul className="mt-2 space-y-2">
-                    {(state.callLogs[a.id] ?? []).map((c) => (
-                      <li key={c.id} className="rounded-md bg-secondary p-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-medium">{c.outcome}</span>
-                          <span className="text-muted-foreground">{formatDate(c.date)}</span>
-                        </div>
-                        <p className="mt-1 text-muted-foreground">
-                          {c.duration} · Next: {c.nextAction}
-                        </p>
-                        {c.notes && <p className="mt-1">{c.notes}</p>}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-
-              <div className="flex flex-wrap gap-2 border-t pt-4">
-                <Button size="sm" onClick={() => modals.openEmail(a)}>
-                  <Mail className="mr-1 h-3.5 w-3.5" /> Email
+              <div className="border-t pt-4">
+                <Button className="w-full" size="lg" onClick={() => startCreatePlan(a)}>
+                  Move to Action Plan <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-                <Button size="sm" variant="outline" onClick={() => modals.openPlan(a)}>
-                  <ClipboardList className="mr-1 h-3.5 w-3.5" /> Action Plan
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => modals.openCall(a)}>
-                  <Phone className="mr-1 h-3.5 w-3.5" /> Log Call
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => window.print()}>
-                  <FileDown className="mr-1 h-3.5 w-3.5" /> Export PDF
-                </Button>
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  Pipeline, notes, calls, and outreach live inside the account's deal room.
+                </p>
               </div>
             </div>
           </div>
@@ -287,6 +163,7 @@ export function AccountDetailPanel() {
     </Sheet>
   );
 }
+
 
 function IntelCell({ label, value }: { label: string; value: string }) {
   return (

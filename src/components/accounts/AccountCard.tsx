@@ -5,9 +5,10 @@ import { CategoryPill } from "@/components/common/CategoryPill";
 import { ScoreBadge } from "@/components/common/ScoreBadge";
 import { RenewalCountdown } from "@/components/common/RenewalCountdown";
 import { CompetitiveRiskBadge } from "@/components/common/CompetitiveRiskBadge";
+import { SourceBadge } from "@/components/common/SourceBadge";
 import { PipelineStageSelect } from "./PipelineStageSelect";
 import { Button } from "@/components/ui/button";
-import { Mail, ClipboardList, StickyNote } from "lucide-react";
+import { Mail, ClipboardList, StickyNote, ArrowDown } from "lucide-react";
 import { formatCurrencyShort, formatPct } from "@/lib/format";
 import { useModals } from "@/components/modals/ModalsProvider";
 
@@ -17,7 +18,19 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
   const competitiveRisk = account.endOfLife && account.cloudStatus === "none";
 
   return (
-    <div className="app-card flex flex-col gap-4 p-5">
+    <div className="app-card group relative flex flex-col gap-4 p-5">
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          modals.openDeprioritize(account);
+        }}
+        className="absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground group-hover:flex"
+        aria-label="Deprioritize this account"
+        title="Deprioritize"
+      >
+        <ArrowDown className="h-4 w-4" />
+      </button>
+
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <button
@@ -31,6 +44,7 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
             <span>·</span>
             <span>{account.region}</span>
             <CategoryPill category={account.category} className="ml-1" />
+            <SourceBadge source={account.dataSource} size="xs" />
           </div>
         </div>
         <ScoreBadge score={account.score} category={account.category} />

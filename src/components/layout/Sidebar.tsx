@@ -1,35 +1,50 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings, Target } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type NavItem = {
-  to: "/" | "/accounts" | "/leaderboard" | "/renewals" | "/settings";
+  to: "/" | "/accounts" | "/leaderboard" | "/action-plans" | "/renewals" | "/settings";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
-  badge?: boolean;
+  badge?: "renewals" | "plans";
 };
 
 const items: NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
   { to: "/accounts", label: "Accounts", icon: ClipboardList },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
-  { to: "/renewals", label: "Renewal Alerts", icon: Bell, badge: true },
+  { to: "/action-plans", label: "Action Plans", icon: Target, badge: "plans" },
+  { to: "/renewals", label: "Renewal Alerts", icon: Bell, badge: "renewals" },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
 export const SIDEBAR_W = 72;
 
+const ACTIVE_PLAN_STAGES = new Set(["contacted", "meeting_scheduled", "proposal_sent"]);
+
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { scoredAccounts } = useApp();
+  const { scoredAccounts, state } = useApp();
   const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
+  const planCount = scoredAccounts.filter((a) => {
+    const stage = state.pipelineStages[a.id] ?? a.pipelineStage;
+    return ACTIVE_PLAN_STAGES.has(stage);
+  }).length;
+
+  function badgeCount(b: NavItem["badge"]) {
+    if (b === "renewals") return urgentCount;
+    if (b === "plans") return planCount;
+    return 0;
+  }
+  function badgeColor(b: NavItem["badge"]) {
+    return b === "renewals" ? "var(--hot)" : "var(--primary)";
+  }
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* Desktop slim Material sidebar */}
       <aside
         className="fixed left-0 top-0 z-30 hidden h-screen flex-col items-center bg-sidebar md:flex"
         style={{ width: SIDEBAR_W }}
@@ -46,14 +61,11 @@ export function Sidebar() {
           {items.map((item) => {
             const Icon = item.icon;
             const active = item.exact ? path === item.to : path.startsWith(item.to);
+            const count = badgeCount(item.badge);
             return (
               <Tooltip key={item.to}>
                 <TooltipTrigger asChild>
-                  <Link
-                    to={item.to}
-                    className="group flex flex-col items-center gap-1 py-1"
-                    aria-label={item.label}
-                  >
+                  <Link to={item.to} className="group flex flex-col items-center gap-1 py-1" aria-label={item.label}>
                     <span
                       className={cn(
                         "relative flex h-9 w-14 items-center justify-center rounded-full transition-all",
@@ -64,12 +76,12 @@ export function Sidebar() {
                       style={active ? { backgroundColor: "var(--primary-container)" } : undefined}
                     >
                       <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
-                      {item.badge && urgentCount > 0 && (
+                      {item.badge && count > 0 && (
                         <span
                           className="absolute -right-0 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-sidebar"
-                          style={{ backgroundColor: "var(--hot)" }}
+                          style={{ backgroundColor: badgeColor(item.badge) }}
                         >
-                          {urgentCount}
+                          {count}
                         </span>
                       )}
                     </span>
@@ -85,7 +97,7 @@ export function Sidebar() {
                 </TooltipTrigger>
                 <TooltipContent side="right" className="text-xs">
                   {item.label}
-                  {item.badge && urgentCount > 0 && ` · ${urgentCount}`}
+                  {item.badge && count > 0 && ` · ${count}`}
                 </TooltipContent>
               </Tooltip>
             );
@@ -94,10 +106,11 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t bg-sidebar md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t bg-sidebar md:hidden">
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.exact ? path === item.to : path.startsWith(item.to);
+          const count = badgeCount(item.badge);
           return (
             <Link
               key={item.to}
@@ -114,10 +127,10 @@ export function Sidebar() {
                 <Icon className="h-4 w-4" />
               </span>
               <span className="truncate">{item.label.split(" ")[0]}</span>
-              {item.badge && urgentCount > 0 && (
+              {item.badge && count > 0 && (
                 <span
                   className="absolute right-3 top-1 h-1.5 w-1.5 rounded-full"
-                  style={{ backgroundColor: "var(--hot)" }}
+                  style={{ backgroundColor: badgeColor(item.badge) }}
                 />
               )}
             </Link>

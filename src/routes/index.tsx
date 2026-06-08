@@ -10,10 +10,26 @@ import { CategoryDonut } from "@/components/dashboard/CategoryDonut";
 import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
 import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
 import { ContextPreview } from "@/components/dashboard/ContextPreview";
+import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";
 import type { ScoredAccount } from "@/lib/types";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -32,9 +48,25 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const { rep, user } = useAuth();
   const { scoredAccounts } = useApp();
-  const { active } = useDashboards();
+  const { active, updateLayout } = useDashboards();
   const layout = active?.layout ?? DEFAULT_LAYOUT;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active: a, over } = event;
+    if (!over || a.id === over.id || !active) return;
+    const ids = layout.widgets.map((w) => w.key);
+    const oldIndex = ids.indexOf(a.id as WidgetKey);
+    const newIndex = ids.indexOf(over.id as WidgetKey);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(layout.widgets, oldIndex, newIndex);
+    void updateLayout({ ...layout, widgets: next });
+  };
 
   const filtered: ScoredAccount[] = useMemo(() => {
     const f = layout.filters;
@@ -152,9 +184,26 @@ function Dashboard() {
         <DashboardBar />
       </div>
 
-      {layout.widgets
-        .filter((w) => w.visible)
-        .map((w) => renderWidget(w.key))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={layout.widgets.filter((w) => w.visible).map((w) => w.key)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-6">
+            {layout.widgets
+              .filter((w) => w.visible)
+              .map((w) => {
+                const node = renderWidget(w.key);
+                if (!node) return null;
+                return (
+                  <SortableWidget key={w.key} id={w.key}>
+                    {node}
+                  </SortableWidget>
+                );
+              })}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

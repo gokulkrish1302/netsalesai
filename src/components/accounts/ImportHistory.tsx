@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
 
-export function ImportHistory({ onImportClick }: { onImportClick: () => void }) {
+export function ImportHistory({ onImportClick, defaultOpen = false }: { onImportClick: () => void; defaultOpen?: boolean }) {
   const { state, removeImportRecord } = useApp();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const records = state.importHistory;
   const total = records.reduce((s, r) => s + r.count, 0);
 

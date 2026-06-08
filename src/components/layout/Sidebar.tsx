@@ -2,7 +2,6 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings, Target } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type NavItem = {
   to: "/" | "/accounts" | "/leaderboard" | "/action-plans" | "/renewals" | "/settings";
@@ -17,11 +16,11 @@ const items: NavItem[] = [
   { to: "/accounts", label: "Accounts", icon: ClipboardList },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/action-plans", label: "Action Plans", icon: Target, badge: "plans" },
-  { to: "/renewals", label: "Renewal Alerts", icon: Bell, badge: "renewals" },
+  { to: "/renewals", label: "Renewals", icon: Bell, badge: "renewals" },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 
-export const SIDEBAR_W = 72;
+export const SIDEBAR_W = 240;
 
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -39,65 +38,75 @@ export function Sidebar() {
   }
 
   return (
-    <TooltipProvider delayDuration={200}>
+    <>
       <aside
-        className="fixed left-0 top-0 z-30 hidden h-screen flex-col items-center bg-sidebar md:flex"
+        className="fixed left-0 top-0 z-30 hidden h-screen flex-col border-r bg-sidebar md:flex"
         style={{ width: SIDEBAR_W }}
       >
-        <div className="flex h-16 w-full items-center justify-center">
+        {/* Brand */}
+        <div className="flex h-16 items-center gap-3 px-5">
           <div
-            className="flex h-10 w-10 items-center justify-center rounded-2xl text-base font-bold text-white"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-base font-bold text-white"
             style={{ backgroundColor: "var(--primary)", fontFamily: "var(--font-display)" }}
           >
             N
           </div>
+          <div className="flex flex-col leading-tight">
+            <span
+              className="text-[15px] font-semibold tracking-tight text-foreground"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Cloud Compass
+            </span>
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              by NetApp
+            </span>
+          </div>
         </div>
-        <nav className="flex w-full flex-col items-center gap-2 py-2">
+
+        <div className="mx-3 mb-2 mt-1 h-px bg-border/70" />
+
+        <nav className="flex-1 space-y-1 px-3 pt-1">
+          <div className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Workspace
+          </div>
           {items.map((item) => {
             const Icon = item.icon;
             const active = item.exact ? path === item.to : path.startsWith(item.to);
             const count = badgeCount(item.badge);
             return (
-              <Tooltip key={item.to}>
-                <TooltipTrigger asChild>
-                  <Link to={item.to} className="group flex flex-col items-center gap-1 py-1" aria-label={item.label}>
-                    <span
-                      className={cn(
-                        "relative flex h-9 w-14 items-center justify-center rounded-full transition-all",
-                        active
-                          ? "text-on-primary-container"
-                          : "text-muted-foreground group-hover:bg-accent group-hover:text-foreground",
-                      )}
-                      style={active ? { backgroundColor: "var(--primary-container)" } : undefined}
-                    >
-                      <Icon className="h-5 w-5" strokeWidth={active ? 2.4 : 2} />
-                      {item.badge && count > 0 && (
-                        <span
-                          className="absolute -right-0 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white ring-2 ring-sidebar"
-                          style={{ backgroundColor: badgeColor(item.badge) }}
-                        >
-                          {count}
-                        </span>
-                      )}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-[10px] font-medium transition-colors",
-                        active ? "text-foreground" : "text-muted-foreground",
-                      )}
-                    >
-                      {item.label.split(" ")[0]}
-                    </span>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="text-xs">
-                  {item.label}
-                  {item.badge && count > 0 && ` · ${count}`}
-                </TooltipContent>
-              </Tooltip>
+              <Link
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-primary-container text-on-primary-container"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+              >
+                <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.2 : 1.8} />
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.badge && count > 0 && (
+                  <span
+                    className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white"
+                    style={{ backgroundColor: badgeColor(item.badge) }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </Link>
             );
           })}
         </nav>
+
+        {/* Footer tip */}
+        <div className="mx-3 mb-4 mt-2 rounded-xl border bg-card p-3">
+          <div className="text-[11px] font-semibold text-foreground">Need a hand?</div>
+          <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">
+            Press <kbd className="rounded border bg-muted px-1 text-[10px]">⌘ K</kbd> to search anywhere.
+          </div>
+        </div>
       </aside>
 
       {/* Mobile bottom bar */}
@@ -132,6 +141,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-    </TooltipProvider>
+    </>
   );
 }

@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/action-plans/$accountId")({
-  component: ActionPlanDetail;
+  component: ActionPlanDetail,
 });
 
 const STATUS_OPTIONS: { value: ActionPlanStatus; label: string }[] = [

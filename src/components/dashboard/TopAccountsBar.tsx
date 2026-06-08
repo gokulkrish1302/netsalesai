@@ -10,10 +10,12 @@ import {
 } from "recharts";
 import { useApp } from "@/state/AppStore";
 import { CATEGORY_META } from "@/lib/scoring";
+import type { ScoredAccount } from "@/lib/types";
 
-export function TopAccountsBar() {
+export function TopAccountsBar({ accounts }: { accounts?: ScoredAccount[] } = {}) {
   const { scoredAccounts, openAccount } = useApp();
-  const data = [...scoredAccounts]
+  const source = accounts ?? scoredAccounts;
+  const data = [...source]
     .sort((a, b) => b.score - a.score)
     .slice(0, 8)
     .map((a) => ({

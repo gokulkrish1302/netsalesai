@@ -3,13 +3,46 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/state/AuthContext";
 import { toast } from "sonner";
 
-export type WidgetKey = "stats" | "alert" | "matrix" | "top" | "renewal";
-export type KpiKey = "accounts" | "hot" | "pipeline" | "active_plans" | "avg_score" | "renewals_60";
+export type WidgetKey =
+  | "stats"
+  | "alert"
+  | "matrix"
+  | "top"
+  | "renewal"
+  | "ranked"
+  | "context"
+  | "donut"
+  | "topbar";
+
+export type KpiKey =
+  | "accounts"
+  | "hot"
+  | "pipeline"
+  | "active_plans"
+  | "avg_score"
+  | "renewals_60"
+  | "stalled"
+  | "won_q"
+  | "avg_days"
+  | "coverage";
+
+export type RenewalWindow = "30" | "60" | "90" | "90plus";
+
+export interface DashboardFilters {
+  region?: string;
+  industry?: string;
+  category?: string;
+  source?: "active_iq" | "excel_import";
+  renewalWindow?: RenewalWindow;
+  scoreMin?: number;
+  scoreMax?: number;
+  rep?: string;
+}
 
 export interface DashboardLayout {
   widgets: { key: WidgetKey; visible: boolean }[];
   kpis: KpiKey[];
-  filters: { region?: string; industry?: string; category?: string };
+  filters: DashboardFilters;
 }
 
 export interface Dashboard {
@@ -25,6 +58,10 @@ export const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: "matrix", label: "Opportunity matrix" },
   { key: "top", label: "Today's #1 priority" },
   { key: "renewal", label: "Renewal radar" },
+  { key: "ranked", label: "Ranked accounts list" },
+  { key: "context", label: "Context preview" },
+  { key: "donut", label: "Category donut" },
+  { key: "topbar", label: "Top accounts bar chart" },
 ];
 
 export const ALL_KPIS: { key: KpiKey; label: string }[] = [
@@ -34,10 +71,18 @@ export const ALL_KPIS: { key: KpiKey; label: string }[] = [
   { key: "active_plans", label: "Active action plans" },
   { key: "avg_score", label: "Avg score" },
   { key: "renewals_60", label: "Renewals < 60d" },
+  { key: "stalled", label: "Stalled plans (14d+)" },
+  { key: "won_q", label: "Won this quarter" },
+  { key: "avg_days", label: "Avg days to next step" },
+  { key: "coverage", label: "Plan coverage %" },
 ];
 
 export const DEFAULT_LAYOUT: DashboardLayout = {
-  widgets: ALL_WIDGETS.map((w) => ({ key: w.key, visible: true })),
+  widgets: ALL_WIDGETS.map((w) => ({
+    key: w.key,
+    // Keep the original five visible by default; new widgets opt-in.
+    visible: ["stats", "alert", "matrix", "top", "renewal"].includes(w.key),
+  })),
   kpis: ["accounts", "hot", "pipeline", "active_plans"],
   filters: {},
 };
@@ -48,7 +93,11 @@ function normalizeLayout(raw: unknown): DashboardLayout {
     (r.widgets ?? []).filter(Boolean).map((w) => [w.key, w]),
   );
   const widgets = ALL_WIDGETS.map(
-    (w) => widgetsByKey.get(w.key) ?? { key: w.key, visible: true },
+    (w) =>
+      widgetsByKey.get(w.key) ?? {
+        key: w.key,
+        visible: ["stats", "alert", "matrix", "top", "renewal"].includes(w.key),
+      },
   );
   const kpis = (r.kpis ?? DEFAULT_LAYOUT.kpis).filter((k) =>
     ALL_KPIS.some((x) => x.key === k),
@@ -84,7 +133,6 @@ export function DashboardsProvider({ children }: { children: ReactNode }) {
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load on rep change
   useEffect(() => {
     if (!email) {
       setDashboards([]);
@@ -112,7 +160,6 @@ export function DashboardsProvider({ children }: { children: ReactNode }) {
         layout: normalizeLayout(d.layout),
         is_default: d.is_default,
       }));
-      // Seed default dashboard if none
       if (list.length === 0) {
         const { data: created, error: err } = await supabase
           .from("dashboards")

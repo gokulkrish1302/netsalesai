@@ -289,8 +289,9 @@ interface AppContextValue {
   setStage: (accountId: string, stage: PipelineStage) => void;
   addNote: (accountId: string, text: string) => void;
   addCallLog: (log: CallLog) => void;
-  addImportedAccounts: (accounts: Account[]) => void;
+  addImportedAccounts: (accounts: Account[], filename?: string) => void;
   removeImportedAccount: (id: string) => void;
+  removeImportRecord: (recordId: string) => void;
   deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
   undoDeprioritize: (accountId: string) => void;
   createPlan: (accountId: string, urgency: Urgency) => void;

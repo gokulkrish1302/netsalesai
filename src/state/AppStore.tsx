@@ -108,6 +108,7 @@ function initial(): AppState {
     notes: persisted.notes ?? {},
     callLogs: persisted.callLogs ?? {},
     importedAccounts: imported,
+    importHistory: persisted.importHistory ?? [],
     deprioritized: persisted.deprioritized ?? {},
     actionPlans: persisted.actionPlans ?? {},
     activeAccountId: null,

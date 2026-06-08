@@ -12,6 +12,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AppProvider } from "@/state/AppStore";
 import { AuthProvider } from "@/state/AuthContext";
+import { DbSync } from "@/state/DbSync";
 import { RouteGate, useIsAuthRoute } from "@/components/auth/RouteGate";
 import { ModalsProvider } from "@/components/modals/ModalsProvider";
 import { AccountDetailPanel } from "@/components/detail/AccountDetailPanel";
@@ -95,6 +96,7 @@ function AppShell() {
   return (
     <AppProvider>
       <ModalsProvider>
+        <DbSync />
         <div className="min-h-screen bg-background">
           <Sidebar />
           <div className="md:pl-[72px]">

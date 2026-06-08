@@ -3,8 +3,11 @@ import { useModals } from "@/components/modals/ModalsProvider";
 import { Link } from "@tanstack/react-router";
 import { Mail, Bell } from "lucide-react";
 
-export function RenewalRadar() {
-  const { scoredAccounts, openAccount } = useApp();
+import type { ScoredAccount } from "@/lib/types";
+
+export function RenewalRadar({ accounts }: { accounts?: ScoredAccount[] } = {}) {
+  const { scoredAccounts: all, openAccount } = useApp();
+  const scoredAccounts = accounts ?? all;
   const modals = useModals();
   const upcoming = [...scoredAccounts]
     .sort((a, b) => a.contractRenewalDays - b.contractRenewalDays)

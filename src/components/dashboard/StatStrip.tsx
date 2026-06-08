@@ -1,58 +1,49 @@
 import { useApp } from "@/state/AppStore";
 import { formatCurrencyShort } from "@/lib/format";
-import { Users, Flame, TrendingUp, Target } from "lucide-react";
+import { Users, Flame, TrendingUp, Target, Gauge, Bell } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { ScoredAccount } from "@/lib/types";
+import type { KpiKey } from "@/state/DashboardsContext";
 
 const ACTIVE_PLAN_STAGES = new Set(["contacted", "meeting_scheduled", "proposal_sent"]);
 
-export function StatStrip() {
+interface Props {
+  accounts?: ScoredAccount[];
+  kpis?: KpiKey[];
+}
+
+export function StatStrip({ accounts, kpis }: Props = {}) {
   const { scoredAccounts, state } = useApp();
-  const total = scoredAccounts.length;
-  const hot = scoredAccounts.filter((a) => a.category === "HOT").length;
-  const pipeline = scoredAccounts.reduce((s, a) => s + a.itBudgetUSD, 0);
-  const activePlans = scoredAccounts.filter((a) => {
+  const data = accounts ?? scoredAccounts;
+  const selected: KpiKey[] = kpis && kpis.length ? kpis : ["accounts", "hot", "pipeline", "active_plans"];
+
+  const total = data.length;
+  const hot = data.filter((a) => a.category === "HOT").length;
+  const pipeline = data.reduce((s, a) => s + a.itBudgetUSD, 0);
+  const activePlans = data.filter((a) => {
     const stage = state.pipelineStages[a.id] ?? a.pipelineStage;
     return ACTIVE_PLAN_STAGES.has(stage);
   }).length;
+  const avgScore = total ? Math.round(data.reduce((s, a) => s + a.score, 0) / total) : 0;
+  const renewals60 = data.filter((a) => a.contractRenewalDays <= 60).length;
 
-  const stats: { label: string; value: string; icon: LucideIcon; tint: string; iconColor: string; live?: boolean }[] = [
-    {
-      label: "Accounts",
-      value: String(total),
-      icon: Users,
-      tint: "var(--primary-container)",
-      iconColor: "var(--on-primary-container)",
-    },
-    {
-      label: "Hot Leads",
-      value: String(hot),
-      icon: Flame,
-      tint: "var(--hot-bg)",
-      iconColor: "var(--hot)",
-      live: true,
-    },
-    {
-      label: "Pipeline Value",
-      value: formatCurrencyShort(pipeline),
-      icon: TrendingUp,
-      tint: "var(--warm-bg)",
-      iconColor: "var(--warm)",
-    },
-    {
-      label: "Active Action Plans",
-      value: String(activePlans),
-      icon: Target,
-      tint: "color-mix(in oklab, var(--primary) 14%, transparent)",
-      iconColor: "var(--primary)",
-    },
-  ];
+  const CATALOG: Record<KpiKey, { label: string; value: string; icon: LucideIcon; tint: string; iconColor: string; live?: boolean }> = {
+    accounts: { label: "Accounts", value: String(total), icon: Users, tint: "var(--primary-container)", iconColor: "var(--on-primary-container)" },
+    hot: { label: "Hot Leads", value: String(hot), icon: Flame, tint: "var(--hot-bg)", iconColor: "var(--hot)", live: true },
+    pipeline: { label: "Pipeline Value", value: formatCurrencyShort(pipeline), icon: TrendingUp, tint: "var(--warm-bg)", iconColor: "var(--warm)" },
+    active_plans: { label: "Active Action Plans", value: String(activePlans), icon: Target, tint: "color-mix(in oklab, var(--primary) 14%, transparent)", iconColor: "var(--primary)" },
+    avg_score: { label: "Avg Score", value: String(avgScore), icon: Gauge, tint: "var(--primary-container)", iconColor: "var(--on-primary-container)" },
+    renewals_60: { label: "Renewals < 60d", value: String(renewals60), icon: Bell, tint: "var(--hot-bg)", iconColor: "var(--hot)" },
+  };
+
+  const stats = selected.map((k) => ({ key: k, ...CATALOG[k] }));
 
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {stats.map((s) => {
         const Icon = s.icon;
         return (
-          <div key={s.label} className="app-card flex items-center gap-4 p-4">
+          <div key={s.key} className="app-card flex items-center gap-4 p-4">
             <div
               className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
               style={{ backgroundColor: s.tint }}

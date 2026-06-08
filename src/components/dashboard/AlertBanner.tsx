@@ -3,9 +3,12 @@ import { AlertTriangle } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { Button } from "@/components/ui/button";
 
-export function AlertBanner() {
-  const { scoredAccounts } = useApp();
-  const count = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
+import type { ScoredAccount } from "@/lib/types";
+
+export function AlertBanner({ accounts }: { accounts?: ScoredAccount[] } = {}) {
+  const { scoredAccounts: all } = useApp();
+  const data = accounts ?? all;
+  const count = data.filter((a) => a.contractRenewalDays <= 60).length;
   if (count === 0) return null;
   return (
     <div

@@ -8,8 +8,11 @@ import { Clock, Database, ArrowRight, Sparkles } from "lucide-react";
 import { formatPct } from "@/lib/format";
 
 
-export function TopPriorityCard() {
-  const { scoredAccounts, openAccount } = useApp();
+import type { ScoredAccount } from "@/lib/types";
+
+export function TopPriorityCard({ accounts }: { accounts?: ScoredAccount[] } = {}) {
+  const { scoredAccounts: all, openAccount } = useApp();
+  const scoredAccounts = accounts ?? all;
   const modals = useModals();
   const top = [...scoredAccounts].sort((a, b) => b.score - a.score)[0];
   if (!top) return null;

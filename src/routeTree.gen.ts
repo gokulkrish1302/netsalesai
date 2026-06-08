@@ -14,6 +14,7 @@ import { Route as RenewalsRouteImport } from './routes/renewals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as ImportsRouteImport } from './routes/imports'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ActionPlansRouteImport } from './routes/action-plans'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ActionPlansIndexRouteImport } from './routes/action-plans.index'
@@ -44,6 +45,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActionPlansRoute = ActionPlansRouteImport.update({
+  id: '/action-plans',
+  path: '/action-plans',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
@@ -55,9 +61,9 @@ const IndexRoute = IndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActionPlansIndexRoute = ActionPlansIndexRouteImport.update({
-  id: '/action-plans/',
-  path: '/action-plans/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => ActionPlansRoute,
 } as any)
 const ActionPlansAccountIdRoute = ActionPlansAccountIdRouteImport.update({
   id: '/$accountId',
@@ -68,6 +74,7 @@ const ActionPlansAccountIdRoute = ActionPlansAccountIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -91,6 +98,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
@@ -104,6 +112,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/accounts'
+    | '/action-plans'
     | '/auth'
     | '/imports'
     | '/leaderboard'
@@ -126,6 +135,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/accounts'
+    | '/action-plans'
     | '/auth'
     | '/imports'
     | '/leaderboard'
@@ -138,12 +148,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
+  ActionPlansRoute: typeof ActionPlansRouteWithChildren
   AuthRoute: typeof AuthRoute
   ImportsRoute: typeof ImportsRoute
   LeaderboardRoute: typeof LeaderboardRoute
   RenewalsRoute: typeof RenewalsRoute
   SettingsRoute: typeof SettingsRoute
-  ActionPlansIndexRoute: typeof ActionPlansIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -183,6 +193,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/action-plans': {
+      id: '/action-plans'
+      path: '/action-plans'
+      fullPath: '/action-plans'
+      preLoaderRoute: typeof ActionPlansRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accounts': {
       id: '/accounts'
       path: '/accounts'
@@ -199,10 +216,10 @@ declare module '@tanstack/react-router' {
     }
     '/action-plans/': {
       id: '/action-plans/'
-      path: '/action-plans'
+      path: '/'
       fullPath: '/action-plans/'
       preLoaderRoute: typeof ActionPlansIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof ActionPlansRoute
     }
     '/action-plans/$accountId': {
       id: '/action-plans/$accountId'
@@ -214,15 +231,29 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ActionPlansRouteChildren {
+  ActionPlansAccountIdRoute: typeof ActionPlansAccountIdRoute
+  ActionPlansIndexRoute: typeof ActionPlansIndexRoute
+}
+
+const ActionPlansRouteChildren: ActionPlansRouteChildren = {
+  ActionPlansAccountIdRoute: ActionPlansAccountIdRoute,
+  ActionPlansIndexRoute: ActionPlansIndexRoute,
+}
+
+const ActionPlansRouteWithChildren = ActionPlansRoute._addFileChildren(
+  ActionPlansRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
+  ActionPlansRoute: ActionPlansRouteWithChildren,
   AuthRoute: AuthRoute,
   ImportsRoute: ImportsRoute,
   LeaderboardRoute: LeaderboardRoute,
   RenewalsRoute: RenewalsRoute,
   SettingsRoute: SettingsRoute,
-  ActionPlansIndexRoute: ActionPlansIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

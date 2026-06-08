@@ -27,8 +27,9 @@ interface Point {
   account: ScoredAccount;
 }
 
-export function PriorityMatrix() {
-  const { scoredAccounts, openAccount } = useApp();
+export function PriorityMatrix({ accounts }: { accounts?: ScoredAccount[] } = {}) {
+  const { scoredAccounts: all, openAccount } = useApp();
+  const scoredAccounts = accounts ?? all;
   const [hoverId, setHoverId] = useState<string | null>(null);
 
   const seriesByCat = useMemo(() => {

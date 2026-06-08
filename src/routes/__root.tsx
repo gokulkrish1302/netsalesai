@@ -12,6 +12,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AppProvider } from "@/state/AppStore";
 import { AuthProvider } from "@/state/AuthContext";
+import { DashboardsProvider } from "@/state/DashboardsContext";
 import { DbSync } from "@/state/DbSync";
 import { RouteGate, useIsAuthRoute } from "@/components/auth/RouteGate";
 import { ModalsProvider } from "@/components/modals/ModalsProvider";
@@ -95,19 +96,21 @@ function AppShell() {
   }
   return (
     <AppProvider>
-      <ModalsProvider>
-        <DbSync />
-        <div className="min-h-screen bg-background">
-          <Sidebar />
-          <div className="md:pl-[72px]">
-            <TopBar />
-            <main className="p-4 pb-20 md:p-8 md:pb-8">
-              <Outlet />
-            </main>
+      <DashboardsProvider>
+        <ModalsProvider>
+          <DbSync />
+          <div className="min-h-screen bg-background">
+            <Sidebar />
+            <div className="md:pl-[72px]">
+              <TopBar />
+              <main className="p-4 pb-20 md:p-8 md:pb-8">
+                <Outlet />
+              </main>
+            </div>
+            <AccountDetailPanel />
           </div>
-          <AccountDetailPanel />
-        </div>
-      </ModalsProvider>
+        </ModalsProvider>
+      </DashboardsProvider>
     </AppProvider>
   );
 }

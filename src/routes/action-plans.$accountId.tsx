@@ -5,7 +5,11 @@ import { useModals } from "@/components/modals/ModalsProvider";
 import { SourceBadge } from "@/components/common/SourceBadge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   Mail,
@@ -15,6 +19,15 @@ import {
   Trash2,
   Trophy,
   XCircle,
+  Users,
+  FileText,
+  Plus,
+  Building2,
+  Calendar,
+  DollarSign,
+  Link as LinkIcon,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import {
   URGENCY_LABEL,
@@ -31,7 +44,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/action-plans/$accountId")({
-  component: ActionPlanDetail,
+  component: ActionPlanDetail;
 });
 
 const STATUS_OPTIONS: { value: ActionPlanStatus; label: string }[] = [
@@ -43,12 +56,45 @@ const STATUS_OPTIONS: { value: ActionPlanStatus; label: string }[] = [
   { value: "lost", label: "Lost" },
 ];
 
+const STAGE_ORDER: ActionPlanStatus[] = [
+  "not_contacted",
+  "contacted",
+  "meeting_scheduled",
+  "proposal_sent",
+  "won",
+];
+
+const STAGE_LABEL: Record<ActionPlanStatus, string> = {
+  not_contacted: "Prospect",
+  contacted: "Contacted",
+  meeting_scheduled: "Meeting",
+  proposal_sent: "Proposal",
+  won: "Won",
+  lost: "Lost",
+};
+
+interface Stakeholder { id: string; name: string; role: string; email: string }
+interface SharedFile { id: string; name: string; url: string }
+
+function initials(name: string) {
+  return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+}
+
 function ActionPlanDetail() {
   const { accountId } = Route.useParams();
   const navigate = useNavigate();
   const { state, scoredAccounts, setPlanStatus, addPlanActivity, setPlanNextStep, removePlan } = useApp();
   const { openOutcome } = useModals();
   const [note, setNote] = useState("");
+
+  // Local sales-room state (lightweight, in-memory per session)
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [files, setFiles] = useState<SharedFile[]>([]);
+  const [shName, setShName] = useState("");
+  const [shRole, setShRole] = useState("");
+  const [shEmail, setShEmail] = useState("");
+  const [fileName, setFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
 
   const plan = state.actionPlans[accountId];
   const account = scoredAccounts.find((a) => a.id === accountId);
@@ -95,11 +141,7 @@ function ActionPlanDetail() {
     const text = note.trim();
     if (!text && type === "note") return;
     const payload =
-      type === "note"
-        ? text
-        : type === "call"
-          ? "Logged call"
-          : "Marked email sent";
+      type === "note" ? text : type === "call" ? "Logged call" : "Marked email sent";
     addPlanActivity(account.id, {
       id: `act-${Date.now()}`,
       type,
@@ -118,11 +160,38 @@ function ActionPlanDetail() {
     }
   };
 
+  function addStakeholder(e: React.FormEvent) {
+    e.preventDefault();
+    if (!shName.trim()) return;
+    setStakeholders((arr) => [
+      ...arr,
+      { id: `st-${Date.now()}`, name: shName.trim(), role: shRole.trim() || "Stakeholder", email: shEmail.trim() },
+    ]);
+    setShName(""); setShRole(""); setShEmail("");
+    toast.success("Stakeholder added");
+  }
+
+  function addFile(e: React.FormEvent) {
+    e.preventDefault();
+    if (!fileName.trim() || !fileUrl.trim()) return;
+    setFiles((arr) => [...arr, { id: `f-${Date.now()}`, name: fileName.trim(), url: fileUrl.trim() }]);
+    setFileName(""); setFileUrl("");
+    toast.success("File link saved");
+  }
+
   const sourceTs = account.sourceTimestamp ? formatDate(account.sourceTimestamp) : "—";
   const isClosed = plan.status === "won" || plan.status === "lost";
 
+  const stageIndex = STAGE_ORDER.indexOf(plan.status === "lost" ? "not_contacted" : plan.status);
+  const stageProgress = plan.status === "won"
+    ? 100
+    : plan.status === "lost"
+      ? 0
+      : Math.round(((stageIndex + 1) / STAGE_ORDER.length) * 100);
+
   return (
     <div className="space-y-5">
+      {/* Top nav */}
       <div className="flex items-center justify-between gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/action-plans" })}>
           <ArrowLeft className="mr-1.5 h-4 w-4" /> All plans
@@ -137,38 +206,100 @@ function ActionPlanDetail() {
             navigate({ to: "/action-plans" });
           }}
         >
-          <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Remove plan
+          <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Close sales room
         </Button>
       </div>
 
-      <header className="app-card flex flex-wrap items-start justify-between gap-4 p-5">
-        <div>
-          <h1 className="display text-[26px] leading-tight md:text-[30px]">{account.accountName}</h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <SourceBadge source={account.dataSource} size="sm" />
-            <span>· Last synced {sourceTs}</span>
-            <span>·</span>
-            <span className="rounded-full bg-surface-2 px-2 py-0.5 font-semibold text-foreground">
-              {URGENCY_LABEL[plan.urgency]}
-            </span>
-            <span>·</span>
-            <span>Score {account.score}/100 ({account.category})</span>
+      {/* Sales-room header */}
+      <header
+        className="app-card overflow-hidden p-0"
+        style={{
+          background:
+            "linear-gradient(135deg, color-mix(in oklab, var(--primary) 10%, var(--card)), var(--card))",
+        }}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4 p-5">
+          <div className="flex items-start gap-4">
+            <div
+              className="flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-md"
+              style={{ backgroundColor: "var(--primary)" }}
+            >
+              <Building2 className="h-7 w-7" />
+            </div>
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Sales room
+              </div>
+              <h1 className="display text-[26px] leading-tight md:text-[30px]">{account.accountName}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <SourceBadge source={account.dataSource} size="sm" />
+                <span>· Synced {sourceTs}</span>
+                <span>·</span>
+                <span className="rounded-full bg-surface-2 px-2 py-0.5 font-semibold text-foreground">
+                  {URGENCY_LABEL[plan.urgency]}
+                </span>
+                <span>·</span>
+                <span>Score {account.score}/100 ({account.category})</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Deal status
+            </label>
+            <Select value={plan.status} onValueChange={(v) => handleStatusChange(v as ActionPlanStatus)}>
+              <SelectTrigger className="h-9 w-52 rounded-full text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((s) => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Status</label>
-          <Select value={plan.status} onValueChange={(v) => handleStatusChange(v as ActionPlanStatus)}>
-            <SelectTrigger className="h-9 w-52 rounded-full text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        {/* Pipeline stepper */}
+        <div className="border-t bg-background/40 p-4">
+          <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <span>Pipeline progress</span>
+            <span>{stageProgress}%</span>
+          </div>
+          <Progress value={stageProgress} className="h-1.5" />
+          <div className="mt-3 grid grid-cols-5 gap-2 text-center text-[11px]">
+            {STAGE_ORDER.map((s, i) => {
+              const reached = plan.status === "won" || i <= stageIndex;
+              const current = plan.status === s;
+              return (
+                <div key={s} className="flex flex-col items-center gap-1">
+                  {reached ? (
+                    <CheckCircle2
+                      className="h-4 w-4"
+                      style={{ color: current ? "var(--primary)" : "var(--success)" }}
+                    />
+                  ) : (
+                    <Circle className="h-4 w-4 text-muted-foreground/50" />
+                  )}
+                  <span className={cn("truncate", current ? "font-semibold text-foreground" : "text-muted-foreground")}>
+                    {STAGE_LABEL[s]}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-2 gap-px bg-border/60 sm:grid-cols-4">
+          <Stat icon={<DollarSign className="h-4 w-4" />} label="Deal size" value={
+            deal && deal.high > 0
+              ? `${formatCurrencyShort(deal.low)}–${formatCurrencyShort(deal.high)}`
+              : "—"
+          } />
+          <Stat icon={<Calendar className="h-4 w-4" />} label="Renewal" value={`${account.contractRenewalDays}d`} />
+          <Stat icon={<Users className="h-4 w-4" />} label="Stakeholders" value={String(stakeholders.length)} />
+          <Stat icon={<FileText className="h-4 w-4" />} label="Files" value={String(files.length)} />
         </div>
       </header>
 
@@ -219,23 +350,53 @@ function ActionPlanDetail() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* Left: AI plan content */}
-        <div className="space-y-5 lg:col-span-2">
-          <section className="app-card p-5">
-            <h2 className="mb-2 text-sm font-semibold">Account summary</h2>
-            <p className="text-sm text-foreground/90">{buildAccountSummary(account)}</p>
-          </section>
+      {/* Tabs: Overview · Playbook · Stakeholders · Files · Activity */}
+      <Tabs defaultValue="overview" className="space-y-4">
+        <TabsList className="flex w-full flex-wrap justify-start gap-1">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="playbook">Playbook</TabsTrigger>
+          <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
+          <TabsTrigger value="files">Files</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+        </TabsList>
 
+        {/* OVERVIEW */}
+        <TabsContent value="overview" className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <div className="space-y-5 lg:col-span-2">
+            <section className="app-card p-5">
+              <h2 className="mb-2 text-sm font-semibold">Account summary</h2>
+              <p className="text-sm text-foreground/90">{buildAccountSummary(account)}</p>
+            </section>
+            <section className="app-card p-5">
+              <h2 className="mb-2 text-sm font-semibold">Estimated deal size</h2>
+              <p className="text-2xl font-bold" style={{ color: "var(--success)" }}>
+                {deal && deal.high > 0
+                  ? `${formatCurrencyShort(deal.low)} – ${formatCurrencyShort(deal.high)}`
+                  : "—"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Range derived from IT budget ({formatCurrencyShort(account.itBudgetUSD)}) and account category.
+              </p>
+            </section>
+          </div>
+          <aside className="space-y-5">
+            <QuickNoteCard
+              note={note}
+              setNote={setNote}
+              onAdd={handleAddActivity}
+              disabled={isClosed}
+            />
+          </aside>
+        </TabsContent>
+
+        {/* PLAYBOOK */}
+        <TabsContent value="playbook" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           <section className="app-card p-5">
             <h2 className="mb-3 text-sm font-semibold">Talking points</h2>
             <ul className="list-disc space-y-2 pl-5 text-sm">
-              {planContent?.talkingPoints.slice(0, 3).map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
+              {planContent?.talkingPoints.slice(0, 3).map((t, i) => <li key={i}>{t}</li>)}
             </ul>
           </section>
-
           <section className="app-card p-5">
             <h2 className="mb-3 text-sm font-semibold">Top objections ({account.industry})</h2>
             <div className="space-y-3">
@@ -247,8 +408,7 @@ function ActionPlanDetail() {
               ))}
             </div>
           </section>
-
-          <section className="app-card p-5">
+          <section className="app-card p-5 lg:col-span-2">
             <h2 className="mb-3 text-sm font-semibold">
               Outreach timeline — {URGENCY_LABEL[plan.urgency]}
             </h2>
@@ -266,45 +426,93 @@ function ActionPlanDetail() {
               ))}
             </ol>
           </section>
+        </TabsContent>
 
-          <section className="app-card p-5">
-            <h2 className="mb-2 text-sm font-semibold">Estimated deal size</h2>
-            <p className="text-2xl font-bold" style={{ color: "var(--success)" }}>
-              {deal && deal.high > 0
-                ? `${formatCurrencyShort(deal.low)} – ${formatCurrencyShort(deal.high)}`
-                : "—"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Range derived from IT budget ({formatCurrencyShort(account.itBudgetUSD)}) and account category.
-            </p>
+        {/* STAKEHOLDERS */}
+        <TabsContent value="stakeholders" className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <section className="app-card p-5 lg:col-span-2">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <Users className="h-4 w-4" /> People in this deal
+            </h2>
+            {stakeholders.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No stakeholders added yet. Capture buyers and influencers on the right.</p>
+            ) : (
+              <ul className="divide-y">
+                {stakeholders.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between py-3">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-9 w-9">
+                        <AvatarFallback>{initials(s.name)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-semibold">{s.name}</div>
+                        <div className="text-xs text-muted-foreground">{s.role}{s.email ? ` · ${s.email}` : ""}</div>
+                      </div>
+                    </div>
+                    {s.email && (
+                      <Button size="sm" variant="ghost" asChild>
+                        <a href={`mailto:${s.email}`}><Mail className="mr-1 h-3.5 w-3.5" /> Email</a>
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
-        </div>
+          <aside className="app-card p-5">
+            <h3 className="mb-3 text-sm font-semibold">Add stakeholder</h3>
+            <form onSubmit={addStakeholder} className="space-y-2">
+              <Input placeholder="Full name" value={shName} onChange={(e) => setShName(e.target.value)} required />
+              <Input placeholder="Role / title" value={shRole} onChange={(e) => setShRole(e.target.value)} />
+              <Input type="email" placeholder="Email (optional)" value={shEmail} onChange={(e) => setShEmail(e.target.value)} />
+              <Button type="submit" size="sm" className="w-full">
+                <Plus className="mr-1 h-3.5 w-3.5" /> Add
+              </Button>
+            </form>
+          </aside>
+        </TabsContent>
 
-        {/* Right: Activity log + notes */}
-        <aside className="space-y-5">
-          <section className="app-card p-5">
-            <h2 className="mb-3 text-sm font-semibold">Add note · log activity</h2>
-            <Textarea
-              rows={3}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Type a note — AI will refine the next step…"
-              disabled={isClosed}
-            />
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => handleAddActivity("note")} disabled={isClosed || !note.trim()}>
-                <StickyNote className="mr-1 h-3.5 w-3.5" /> Save note
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAddActivity("call")} disabled={isClosed}>
-                <Phone className="mr-1 h-3.5 w-3.5" /> Log call
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => handleAddActivity("email")} disabled={isClosed}>
-                <Mail className="mr-1 h-3.5 w-3.5" /> Email sent
-              </Button>
-            </div>
+        {/* FILES */}
+        <TabsContent value="files" className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <section className="app-card p-5 lg:col-span-2">
+            <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+              <FileText className="h-4 w-4" /> Shared files & links
+            </h2>
+            {files.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No files yet. Paste a link to a proposal, deck, or doc on the right.</p>
+            ) : (
+              <ul className="divide-y">
+                {files.map((f) => (
+                  <li key={f.id} className="flex items-center justify-between py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate text-sm font-medium">{f.name}</span>
+                    </div>
+                    <Button size="sm" variant="ghost" asChild>
+                      <a href={f.url} target="_blank" rel="noreferrer">
+                        <LinkIcon className="mr-1 h-3.5 w-3.5" /> Open
+                      </a>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
+          <aside className="app-card p-5">
+            <h3 className="mb-3 text-sm font-semibold">Add file link</h3>
+            <form onSubmit={addFile} className="space-y-2">
+              <Input placeholder="Display name (e.g. Proposal v2)" value={fileName} onChange={(e) => setFileName(e.target.value)} required />
+              <Input type="url" placeholder="https://…" value={fileUrl} onChange={(e) => setFileUrl(e.target.value)} required />
+              <Button type="submit" size="sm" className="w-full">
+                <Plus className="mr-1 h-3.5 w-3.5" /> Add link
+              </Button>
+            </form>
+          </aside>
+        </TabsContent>
 
-          <section className="app-card p-5">
+        {/* ACTIVITY */}
+        <TabsContent value="activity" className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+          <section className="app-card p-5 lg:col-span-2">
             <h2 className="mb-3 text-sm font-semibold">Activity log</h2>
             {plan.activities.length === 0 ? (
               <p className="text-xs text-muted-foreground">No activity yet.</p>
@@ -313,9 +521,7 @@ function ActionPlanDetail() {
                 {plan.activities.map((a) => (
                   <li key={a.id} className="border-l-2 pl-3" style={{ borderColor: "var(--primary)" }}>
                     <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-                      <span className={cn("rounded-full px-1.5 py-0.5 font-semibold", "bg-surface-2")}>
-                        {a.type}
-                      </span>
+                      <span className={cn("rounded-full px-1.5 py-0.5 font-semibold", "bg-surface-2")}>{a.type}</span>
                       <span>{formatDate(a.createdAt)}</span>
                     </div>
                     <p className="mt-1 text-foreground/90">{a.text}</p>
@@ -324,8 +530,69 @@ function ActionPlanDetail() {
               </ul>
             )}
           </section>
-        </aside>
+          <aside>
+            <QuickNoteCard
+              note={note}
+              setNote={setNote}
+              onAdd={handleAddActivity}
+              disabled={isClosed}
+            />
+          </aside>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 bg-card px-4 py-3">
+      <div
+        className="flex h-8 w-8 items-center justify-center rounded-lg"
+        style={{ backgroundColor: "color-mix(in oklab, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{label}</div>
+        <div className="truncate text-sm font-semibold">{value}</div>
       </div>
     </div>
+  );
+}
+
+function QuickNoteCard({
+  note,
+  setNote,
+  onAdd,
+  disabled,
+}: {
+  note: string;
+  setNote: (v: string) => void;
+  onAdd: (t: "note" | "call" | "email") => void;
+  disabled: boolean;
+}) {
+  return (
+    <section className="app-card p-5">
+      <h2 className="mb-3 text-sm font-semibold">Add note · log activity</h2>
+      <Textarea
+        rows={3}
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Type a note — AI will refine the next step…"
+        disabled={disabled}
+      />
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Button size="sm" onClick={() => onAdd("note")} disabled={disabled || !note.trim()}>
+          <StickyNote className="mr-1 h-3.5 w-3.5" /> Save note
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => onAdd("call")} disabled={disabled}>
+          <Phone className="mr-1 h-3.5 w-3.5" /> Log call
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => onAdd("email")} disabled={disabled}>
+          <Mail className="mr-1 h-3.5 w-3.5" /> Email sent
+        </Button>
+      </div>
+    </section>
   );
 }

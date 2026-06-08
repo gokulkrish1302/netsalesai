@@ -123,6 +123,8 @@ function AccountsPage() {
         </div>
       </div>
 
+      <ImportHistory onImportClick={() => modals.openImport()} />
+
       <div className="flex flex-wrap items-center gap-3">
         <MultiSelect label="Industry" options={INDUSTRIES} selected={industries} onChange={setIndustries as (s: string[]) => void} />
         <MultiSelect label="Region" options={REGIONS} selected={regions} onChange={setRegions as (s: string[]) => void} />

@@ -75,21 +75,35 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <ModalsProvider>
-          <div className="min-h-screen bg-background">
-            <Sidebar />
-            <div className="md:pl-[72px]">
-              <TopBar />
-              <main className="p-4 pb-20 md:p-8 md:pb-8">
-                <Outlet />
-              </main>
-            </div>
-            <AccountDetailPanel />
-            <Toaster position="bottom-right" />
-          </div>
-        </ModalsProvider>
-      </AppProvider>
+      <AuthProvider>
+        <RouteGate>
+          <AppShell />
+        </RouteGate>
+        <Toaster position="bottom-right" />
+      </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppShell() {
+  const isAuthRoute = useIsAuthRoute();
+  if (isAuthRoute) {
+    return <Outlet />;
+  }
+  return (
+    <AppProvider>
+      <ModalsProvider>
+        <div className="min-h-screen bg-background">
+          <Sidebar />
+          <div className="md:pl-[72px]">
+            <TopBar />
+            <main className="p-4 pb-20 md:p-8 md:pb-8">
+              <Outlet />
+            </main>
+          </div>
+          <AccountDetailPanel />
+        </div>
+      </ModalsProvider>
+    </AppProvider>
   );
 }

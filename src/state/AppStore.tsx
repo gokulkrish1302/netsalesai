@@ -309,7 +309,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const accountsWithStages: Account[] = useMemo(
     () =>
-      state.importedAccounts.map((a) => ({
+      [...MOCK_ACCOUNTS, ...state.importedAccounts].map((a) => ({
         ...a,
         pipelineStage: state.pipelineStages[a.id] ?? a.pipelineStage,
         dataSource: a.dataSource ?? "active_iq",

@@ -8,8 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { Separator } from "@/components/ui/separator";
-import { ALL_KPIS, ALL_WIDGETS, useDashboards, type DashboardLayout, type KpiKey } from "@/state/DashboardsContext";
+import { ALL_KPIS, ALL_WIDGETS, useDashboards, type DashboardLayout, type KpiKey, type RenewalWindow } from "@/state/DashboardsContext";
 import { useApp } from "@/state/AppStore";
 import { ArrowDown, ArrowUp, GripVertical } from "lucide-react";
 
@@ -28,6 +29,7 @@ export function CustomizeDashboardSheet({ open, onOpenChange }: { open: boolean;
 
   const regions = Array.from(new Set(scoredAccounts.map((a) => a.region))).sort();
   const industries = Array.from(new Set(scoredAccounts.map((a) => a.industry))).sort();
+  const reps = Array.from(new Set(scoredAccounts.map((a) => a.salesRep))).sort();
 
   const toggleWidget = (key: string, visible: boolean) => {
     setDraft({ ...draft, widgets: draft.widgets.map((w) => (w.key === key ? { ...w, visible } : w)) });
@@ -49,14 +51,16 @@ export function CustomizeDashboardSheet({ open, onOpenChange }: { open: boolean;
     } else {
       set.delete(key);
     }
-    // Preserve original ordering from ALL_KPIS
     const next = ALL_KPIS.filter((k) => set.has(k.key)).map((k) => k.key);
     setDraft({ ...draft, kpis: next });
   };
 
-  const setFilter = (k: "region" | "industry" | "category", v: string) => {
+  const setFilter = (k: "region" | "industry" | "category" | "source" | "renewalWindow" | "rep", v: string) => {
     setDraft({ ...draft, filters: { ...draft.filters, [k]: v === ANY ? undefined : v } });
   };
+
+  const scoreMin = draft.filters.scoreMin ?? 0;
+  const scoreMax = draft.filters.scoreMax ?? 100;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -117,7 +121,61 @@ export function CustomizeDashboardSheet({ open, onOpenChange }: { open: boolean;
             <div className="grid grid-cols-1 gap-3">
               <FilterRow label="Region" value={draft.filters.region ?? ANY} onChange={(v) => setFilter("region", v)} options={regions} />
               <FilterRow label="Industry" value={draft.filters.industry ?? ANY} onChange={(v) => setFilter("industry", v)} options={industries} />
-              <FilterRow label="Priority" value={draft.filters.category ?? ANY} onChange={(v) => setFilter("category", v)} options={["HOT", "WARM", "COLD", "NOT_READY"]} />
+              <FilterRow
+                label="Priority"
+                value={draft.filters.category ?? ANY}
+                onChange={(v) => setFilter("category", v)}
+                options={[
+                  { value: "HOT", label: "Hot" },
+                  { value: "WARM", label: "Warm" },
+                  { value: "COLD", label: "Cold" },
+                  { value: "NOT_READY", label: "Not ready" },
+                ]}
+              />
+              <FilterRow
+                label="Source"
+                value={draft.filters.source ?? ANY}
+                onChange={(v) => setFilter("source", v)}
+                options={[
+                  { value: "active_iq", label: "Active IQ" },
+                  { value: "excel_import", label: "Excel import" },
+                ]}
+              />
+              <FilterRow
+                label="Renewal"
+                value={draft.filters.renewalWindow ?? ANY}
+                onChange={(v) => setFilter("renewalWindow", v as RenewalWindow)}
+                options={[
+                  { value: "30", label: "< 30 days" },
+                  { value: "60", label: "< 60 days" },
+                  { value: "90", label: "< 90 days" },
+                  { value: "90plus", label: "> 90 days" },
+                ]}
+              />
+              <FilterRow label="Rep" value={draft.filters.rep ?? ANY} onChange={(v) => setFilter("rep", v)} options={reps} />
+
+              <div>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Score range</span>
+                  <span className="text-xs tabular-nums">{scoreMin} – {scoreMax}</span>
+                </div>
+                <Slider
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={[scoreMin, scoreMax]}
+                  onValueChange={([lo, hi]) =>
+                    setDraft({
+                      ...draft,
+                      filters: {
+                        ...draft.filters,
+                        scoreMin: lo === 0 ? undefined : lo,
+                        scoreMax: hi === 100 ? undefined : hi,
+                      },
+                    })
+                  }
+                />
+              </div>
             </div>
           </section>
         </div>
@@ -131,7 +189,10 @@ export function CustomizeDashboardSheet({ open, onOpenChange }: { open: boolean;
   );
 }
 
-function FilterRow({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+type Option = string | { value: string; label: string };
+
+function FilterRow({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: Option[] }) {
+  const opts = options.map((o) => (typeof o === "string" ? { value: o, label: o } : o));
   return (
     <div className="flex items-center gap-3">
       <span className="w-20 text-sm text-muted-foreground">{label}</span>
@@ -139,7 +200,7 @@ function FilterRow({ label, value, onChange, options }: { label: string; value: 
         <SelectTrigger className="flex-1"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value={ANY}>All</SelectItem>
-          {options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+          {opts.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>

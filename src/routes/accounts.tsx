@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import { useApp } from "@/state/AppStore";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { SwimlaneCard } from "@/components/accounts/SwimlaneCard";
-import { ImportHistory } from "@/components/accounts/ImportHistory";
 import { CATEGORY_META } from "@/lib/scoring";
 import type { Category, Industry, Region, ScoredAccount } from "@/lib/types";
 import {
@@ -122,8 +121,6 @@ function AccountsPage() {
           </div>
         </div>
       </div>
-
-      <ImportHistory onImportClick={() => modals.openImport()} />
 
       <div className="flex flex-wrap items-center gap-3">
         <MultiSelect label="Industry" options={INDUSTRIES} selected={industries} onChange={setIndustries as (s: string[]) => void} />

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RenewalsRouteImport } from './routes/renewals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as ImportsRouteImport } from './routes/imports'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActionPlansRouteImport } from './routes/action-plans'
 import { Route as AccountsRouteImport } from './routes/accounts'
@@ -31,6 +32,11 @@ const RenewalsRoute = RenewalsRouteImport.update({
 const LeaderboardRoute = LeaderboardRouteImport.update({
   id: '/leaderboard',
   path: '/leaderboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ImportsRoute = ImportsRouteImport.update({
+  id: '/imports',
+  path: '/imports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -64,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/accounts': typeof AccountsRoute
   '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
+  '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/accounts': typeof AccountsRoute
   '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
+  '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/accounts': typeof AccountsRoute
   '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
+  '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
@@ -97,6 +106,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/action-plans'
     | '/auth'
+    | '/imports'
     | '/leaderboard'
     | '/renewals'
     | '/settings'
@@ -107,6 +117,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/action-plans'
     | '/auth'
+    | '/imports'
     | '/leaderboard'
     | '/renewals'
     | '/settings'
@@ -117,6 +128,7 @@ export interface FileRouteTypes {
     | '/accounts'
     | '/action-plans'
     | '/auth'
+    | '/imports'
     | '/leaderboard'
     | '/renewals'
     | '/settings'
@@ -128,6 +140,7 @@ export interface RootRouteChildren {
   AccountsRoute: typeof AccountsRoute
   ActionPlansRoute: typeof ActionPlansRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ImportsRoute: typeof ImportsRoute
   LeaderboardRoute: typeof LeaderboardRoute
   RenewalsRoute: typeof RenewalsRoute
   SettingsRoute: typeof SettingsRoute
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/leaderboard'
       fullPath: '/leaderboard'
       preLoaderRoute: typeof LeaderboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/imports': {
+      id: '/imports'
+      path: '/imports'
+      fullPath: '/imports'
+      preLoaderRoute: typeof ImportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -211,6 +231,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccountsRoute: AccountsRoute,
   ActionPlansRoute: ActionPlansRouteWithChildren,
   AuthRoute: AuthRoute,
+  ImportsRoute: ImportsRoute,
   LeaderboardRoute: LeaderboardRoute,
   RenewalsRoute: RenewalsRoute,
   SettingsRoute: SettingsRoute,

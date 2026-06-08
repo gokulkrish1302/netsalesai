@@ -293,6 +293,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       callLogs: state.callLogs,
       importedAccounts: state.importedAccounts,
       deprioritized: state.deprioritized,
+      actionPlans: state.actionPlans,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
   }, [
@@ -303,6 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.callLogs,
     state.importedAccounts,
     state.deprioritized,
+    state.actionPlans,
   ]);
 
   const accountsWithStages: Account[] = useMemo(
@@ -374,6 +376,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (accountId: string | null) => dispatch({ type: "OPEN_ACCOUNT", accountId }),
     [],
   );
+  const createPlan = useCallback(
+    (accountId: string, urgency: Urgency) => dispatch({ type: "CREATE_PLAN", accountId, urgency }),
+    [],
+  );
+  const setPlanStatus = useCallback(
+    (accountId: string, status: ActionPlanStatus, decidingFactor?: string) =>
+      dispatch({ type: "SET_PLAN_STATUS", accountId, status, decidingFactor }),
+    [],
+  );
+  const addPlanActivity = useCallback(
+    (accountId: string, activity: ActionPlanActivity) =>
+      dispatch({ type: "ADD_PLAN_ACTIVITY", accountId, activity }),
+    [],
+  );
+  const setPlanNextStep = useCallback(
+    (accountId: string, nextStep: string) =>
+      dispatch({ type: "SET_PLAN_NEXT_STEP", accountId, nextStep }),
+    [],
+  );
+  const removePlan = useCallback(
+    (accountId: string) => dispatch({ type: "REMOVE_PLAN", accountId }),
+    [],
+  );
+
+  const activePlanCount = useMemo(
+    () => Object.values(state.actionPlans).filter(isActivePlan).length,
+    [state.actionPlans],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setPreviousWeights(state.weights), 4000);
@@ -385,6 +415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     scoredAccounts,
     previousScoredAccounts,
     activeAccount,
+    activePlanCount,
     setWeights,
     resetWeights,
     setStage,
@@ -394,6 +425,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     removeImportedAccount,
     deprioritize,
     undoDeprioritize,
+    createPlan,
+    setPlanStatus,
+    addPlanActivity,
+    setPlanNextStep,
+    removePlan,
     openAccount,
   };
 

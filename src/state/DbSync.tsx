@@ -80,7 +80,7 @@ export function DbSync() {
         addImportedAccounts(mapped);
       }
       if (w?.weights) {
-        setWeights(w.weights as typeof state.weights);
+        setWeights(w.weights as unknown as typeof state.weights);
         lastWeightsKey.current = JSON.stringify(w.weights);
       } else {
         lastWeightsKey.current = JSON.stringify(state.weights);
@@ -98,7 +98,7 @@ export function DbSync() {
     const t = setTimeout(() => {
       supabase
         .from("rep_weights")
-        .upsert({ rep_email: rep.email, weights: state.weights, updated_at: new Date().toISOString() })
+        .upsert({ rep_email: rep.email, weights: state.weights as unknown as Record<string, number>, updated_at: new Date().toISOString() })
         .then(() => {});
     }, 600);
     return () => clearTimeout(t);

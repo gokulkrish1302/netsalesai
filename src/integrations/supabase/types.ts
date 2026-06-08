@@ -89,6 +89,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboards: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          layout: Json
+          name: string
+          rep_email: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          name: string
+          rep_email: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          name?: string
+          rep_email?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       rep_weights: {
         Row: {
           rep_email: string

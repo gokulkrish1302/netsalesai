@@ -111,7 +111,7 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile bottom bar */}
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t bg-sidebar md:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-7 border-t bg-sidebar md:hidden">
         {items.map((item) => {
           const Icon = item.icon;
           const active = item.exact ? path === item.to : path.startsWith(item.to);

@@ -59,15 +59,8 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
-        <style>{`
-          /* Map our font tokens to the loaded Google web fonts.
-             "Google Sans" / "Google Sans Text" are not on Google Fonts as direct
-             names, so we fall back to DM Sans (very similar geometric humanist) + Inter. */
-          @font-face { font-family: "Google Sans"; src: local("Google Sans"), local("DM Sans"); font-display: swap; }
-          @font-face { font-family: "Google Sans Text"; src: local("Google Sans Text"), local("Inter"); font-display: swap; }
-        `}</style>
       </head>
-      <body style={{ fontFamily: "'Google Sans Text', 'Inter', system-ui, sans-serif" }}>
+      <body style={{ fontFamily: "'Manrope', 'Inter', system-ui, sans-serif" }}>
         {children}
         <Scripts />
       </body>

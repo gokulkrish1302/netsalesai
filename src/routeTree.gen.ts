@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActionPlansRouteImport } from './routes/action-plans'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActionPlansIndexRouteImport } from './routes/action-plans.index'
 import { Route as ActionPlansAccountIdRouteImport } from './routes/action-plans.$accountId'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -59,6 +60,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActionPlansIndexRoute = ActionPlansIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ActionPlansRoute,
+} as any)
 const ActionPlansAccountIdRoute = ActionPlansAccountIdRouteImport.update({
   id: '/$accountId',
   path: '/$accountId',
@@ -75,17 +81,18 @@ export interface FileRoutesByFullPath {
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
   '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
+  '/action-plans/': typeof ActionPlansIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
-  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/imports': typeof ImportsRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
   '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
+  '/action-plans': typeof ActionPlansIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -98,6 +105,7 @@ export interface FileRoutesById {
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
   '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
+  '/action-plans/': typeof ActionPlansIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -111,17 +119,18 @@ export interface FileRouteTypes {
     | '/renewals'
     | '/settings'
     | '/action-plans/$accountId'
+    | '/action-plans/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/accounts'
-    | '/action-plans'
     | '/auth'
     | '/imports'
     | '/leaderboard'
     | '/renewals'
     | '/settings'
     | '/action-plans/$accountId'
+    | '/action-plans'
   id:
     | '__root__'
     | '/'
@@ -133,6 +142,7 @@ export interface FileRouteTypes {
     | '/renewals'
     | '/settings'
     | '/action-plans/$accountId'
+    | '/action-plans/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -204,6 +214,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/action-plans/': {
+      id: '/action-plans/'
+      path: '/'
+      fullPath: '/action-plans/'
+      preLoaderRoute: typeof ActionPlansIndexRouteImport
+      parentRoute: typeof ActionPlansRoute
+    }
     '/action-plans/$accountId': {
       id: '/action-plans/$accountId'
       path: '/$accountId'
@@ -216,10 +233,12 @@ declare module '@tanstack/react-router' {
 
 interface ActionPlansRouteChildren {
   ActionPlansAccountIdRoute: typeof ActionPlansAccountIdRoute
+  ActionPlansIndexRoute: typeof ActionPlansIndexRoute
 }
 
 const ActionPlansRouteChildren: ActionPlansRouteChildren = {
   ActionPlansAccountIdRoute: ActionPlansAccountIdRoute,
+  ActionPlansIndexRoute: ActionPlansIndexRoute,
 }
 
 const ActionPlansRouteWithChildren = ActionPlansRoute._addFileChildren(

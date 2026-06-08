@@ -325,6 +325,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notes: state.notes,
       callLogs: state.callLogs,
       importedAccounts: state.importedAccounts,
+      importHistory: state.importHistory,
       deprioritized: state.deprioritized,
       actionPlans: state.actionPlans,
     };

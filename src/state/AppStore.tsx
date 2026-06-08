@@ -99,6 +99,7 @@ function initial(): AppState {
     callLogs: persisted.callLogs ?? {},
     importedAccounts: imported,
     deprioritized: persisted.deprioritized ?? {},
+    actionPlans: persisted.actionPlans ?? {},
     activeAccountId: null,
   };
 }
@@ -172,6 +173,72 @@ function reducer(state: AppState, action: Action): AppState {
       delete next[action.accountId];
       return { ...state, deprioritized: next };
     }
+    case "CREATE_PLAN": {
+      const now = new Date().toISOString();
+      const existing = state.actionPlans[action.accountId];
+      if (existing && isActivePlan(existing)) return state;
+      const plan: ActionPlanEntry = {
+        accountId: action.accountId,
+        urgency: action.urgency,
+        status: "not_contacted",
+        createdAt: now,
+        activities: [
+          { id: `act-${Date.now()}`, type: "status", text: `Plan created (${action.urgency.replace(/_/g, " ")})`, createdAt: now },
+        ],
+      };
+      return { ...state, actionPlans: { ...state.actionPlans, [action.accountId]: plan } };
+    }
+    case "SET_PLAN_STATUS": {
+      const now = new Date().toISOString();
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      const closed = action.status === "won" || action.status === "lost";
+      const updated: ActionPlanEntry = {
+        ...existing,
+        status: action.status,
+        decidingFactor: action.decidingFactor ?? existing.decidingFactor,
+        closedAt: closed ? now : existing.closedAt,
+        activities: [
+          {
+            id: `act-${Date.now()}`,
+            type: "status",
+            text: closed
+              ? `Marked ${action.status.toUpperCase()}${action.decidingFactor ? ` — ${action.decidingFactor}` : ""}`
+              : `Status → ${action.status.replace(/_/g, " ")}`,
+            createdAt: now,
+          },
+          ...existing.activities,
+        ],
+      };
+      return { ...state, actionPlans: { ...state.actionPlans, [action.accountId]: updated } };
+    }
+    case "ADD_PLAN_ACTIVITY": {
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      return {
+        ...state,
+        actionPlans: {
+          ...state.actionPlans,
+          [action.accountId]: { ...existing, activities: [action.activity, ...existing.activities] },
+        },
+      };
+    }
+    case "SET_PLAN_NEXT_STEP": {
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      return {
+        ...state,
+        actionPlans: {
+          ...state.actionPlans,
+          [action.accountId]: { ...existing, nextStepOverride: action.nextStep },
+        },
+      };
+    }
+    case "REMOVE_PLAN": {
+      const next = { ...state.actionPlans };
+      delete next[action.accountId];
+      return { ...state, actionPlans: next };
+    }
     case "OPEN_ACCOUNT":
       return { ...state, activeAccountId: action.accountId };
     default:
@@ -184,6 +251,7 @@ interface AppContextValue {
   scoredAccounts: ScoredAccount[];
   previousScoredAccounts: ScoredAccount[];
   activeAccount: ScoredAccount | null;
+  activePlanCount: number;
   setWeights: (w: Weights) => void;
   resetWeights: () => void;
   setStage: (accountId: string, stage: PipelineStage) => void;
@@ -193,6 +261,11 @@ interface AppContextValue {
   removeImportedAccount: (id: string) => void;
   deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
   undoDeprioritize: (accountId: string) => void;
+  createPlan: (accountId: string, urgency: Urgency) => void;
+  setPlanStatus: (accountId: string, status: ActionPlanStatus, decidingFactor?: string) => void;
+  addPlanActivity: (accountId: string, activity: ActionPlanActivity) => void;
+  setPlanNextStep: (accountId: string, nextStep: string) => void;
+  removePlan: (accountId: string) => void;
   openAccount: (accountId: string | null) => void;
 }
 

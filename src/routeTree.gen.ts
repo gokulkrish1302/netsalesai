@@ -16,6 +16,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActionPlansRouteImport } from './routes/action-plans'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActionPlansAccountIdRouteImport } from './routes/action-plans.$accountId'
 
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
@@ -52,34 +53,42 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ActionPlansAccountIdRoute = ActionPlansAccountIdRouteImport.update({
+  id: '/$accountId',
+  path: '/$accountId',
+  getParentRoute: () => ActionPlansRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
-  '/action-plans': typeof ActionPlansRoute
+  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
+  '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
-  '/action-plans': typeof ActionPlansRoute
+  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
+  '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
-  '/action-plans': typeof ActionPlansRoute
+  '/action-plans': typeof ActionPlansRouteWithChildren
   '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
+  '/action-plans/$accountId': typeof ActionPlansAccountIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/renewals'
     | '/settings'
+    | '/action-plans/$accountId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/renewals'
     | '/settings'
+    | '/action-plans/$accountId'
   id:
     | '__root__'
     | '/'
@@ -109,12 +120,13 @@ export interface FileRouteTypes {
     | '/leaderboard'
     | '/renewals'
     | '/settings'
+    | '/action-plans/$accountId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
-  ActionPlansRoute: typeof ActionPlansRoute
+  ActionPlansRoute: typeof ActionPlansRouteWithChildren
   AuthRoute: typeof AuthRoute
   LeaderboardRoute: typeof LeaderboardRoute
   RenewalsRoute: typeof RenewalsRoute
@@ -172,13 +184,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/action-plans/$accountId': {
+      id: '/action-plans/$accountId'
+      path: '/$accountId'
+      fullPath: '/action-plans/$accountId'
+      preLoaderRoute: typeof ActionPlansAccountIdRouteImport
+      parentRoute: typeof ActionPlansRoute
+    }
   }
 }
+
+interface ActionPlansRouteChildren {
+  ActionPlansAccountIdRoute: typeof ActionPlansAccountIdRoute
+}
+
+const ActionPlansRouteChildren: ActionPlansRouteChildren = {
+  ActionPlansAccountIdRoute: ActionPlansAccountIdRoute,
+}
+
+const ActionPlansRouteWithChildren = ActionPlansRoute._addFileChildren(
+  ActionPlansRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
-  ActionPlansRoute: ActionPlansRoute,
+  ActionPlansRoute: ActionPlansRouteWithChildren,
   AuthRoute: AuthRoute,
   LeaderboardRoute: LeaderboardRoute,
   RenewalsRoute: RenewalsRoute,
@@ -187,3 +218,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

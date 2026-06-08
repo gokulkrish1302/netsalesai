@@ -9,7 +9,7 @@ import { ScoreGauge } from "@/components/common/ScoreGauge";
 import { CategoryPill } from "@/components/common/CategoryPill";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Mail, ClipboardList, Phone, FileDown, AlertOctagon } from "lucide-react";
+import { Mail, ClipboardList, Phone, FileDown, AlertOctagon, RefreshCw, Upload } from "lucide-react";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -345,7 +345,7 @@ function DataSourceCard({ account }: { account: import("@/lib/types").ScoredAcco
 }
 
 function SourceBadgeInline({ isIQ }: { isIQ: boolean }) {
-  const Icon = isIQ ? (require("lucide-react").RefreshCw as typeof import("lucide-react").RefreshCw) : (require("lucide-react").Upload as typeof import("lucide-react").Upload);
+  const Icon = isIQ ? RefreshCw : Upload;
   return (
     <span
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"

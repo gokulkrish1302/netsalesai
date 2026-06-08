@@ -162,9 +162,17 @@ function reducer(state: AppState, action: Action): AppState {
       for (const a of action.accounts) {
         if (!nextStages[a.id]) nextStages[a.id] = a.pipelineStage;
       }
+      const record: ImportRecord = {
+        id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        filename: action.filename ?? "Untitled import",
+        importedAt: new Date().toISOString(),
+        count: action.accounts.length,
+        accountIds: action.accounts.map((a) => a.id),
+      };
       return {
         ...state,
         importedAccounts: [...action.accounts, ...state.importedAccounts],
+        importHistory: [record, ...state.importHistory],
         pipelineStages: nextStages,
       };
     }
@@ -172,6 +180,19 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         importedAccounts: state.importedAccounts.filter((a) => a.id !== action.id),
+        importHistory: state.importHistory
+          .map((r) => ({ ...r, accountIds: r.accountIds.filter((x) => x !== action.id) }))
+          .map((r) => ({ ...r, count: r.accountIds.length })),
+      };
+    }
+    case "REMOVE_IMPORT_RECORD": {
+      const rec = state.importHistory.find((r) => r.id === action.recordId);
+      if (!rec) return state;
+      const removeIds = new Set(rec.accountIds);
+      return {
+        ...state,
+        importedAccounts: state.importedAccounts.filter((a) => !removeIds.has(a.id)),
+        importHistory: state.importHistory.filter((r) => r.id !== action.recordId),
       };
     }
     case "DEPRIORITIZE":

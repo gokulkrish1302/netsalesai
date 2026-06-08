@@ -11,6 +11,8 @@ import appCss from "../styles.css?url";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AppProvider } from "@/state/AppStore";
+import { AuthProvider } from "@/state/AuthContext";
+import { RouteGate, useIsAuthRoute } from "@/components/auth/RouteGate";
 import { ModalsProvider } from "@/components/modals/ModalsProvider";
 import { AccountDetailPanel } from "@/components/detail/AccountDetailPanel";
 import { Toaster } from "@/components/ui/sonner";

@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 import { useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { ScorePill } from "@/components/common/ScoreBadge";
+import { useAuth } from "@/state/AuthContext";
+import { TeamManagement } from "@/components/settings/TeamManagement";
+import { ShieldCheck } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -29,6 +32,7 @@ const FIELDS: { key: keyof Weights; label: string; description: string }[] = [
 
 function SettingsPage() {
   const { state, setWeights, resetWeights, scoredAccounts, previousScoredAccounts } = useApp();
+  const { isAdmin } = useAuth();
   const toastDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function update(key: keyof Weights, newValue: number) {
@@ -126,6 +130,21 @@ function SettingsPage() {
         <Top5Card title="Before" items={top5Before} />
         <Top5Card title="After" items={top5Now} />
       </div>
+
+      {isAdmin && (
+        <div className="space-y-4 pt-6">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <div>
+              <h2 className="text-xl font-bold tracking-tight">Team management</h2>
+              <p className="text-sm text-muted-foreground">
+                Add, remove, and grant admin access to sales reps.
+              </p>
+            </div>
+          </div>
+          <TeamManagement />
+        </div>
+      )}
     </div>
   );
 }

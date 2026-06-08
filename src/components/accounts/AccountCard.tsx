@@ -8,7 +8,7 @@ import { CompetitiveRiskBadge } from "@/components/common/CompetitiveRiskBadge";
 import { SourceBadge } from "@/components/common/SourceBadge";
 import { PipelineStageSelect } from "./PipelineStageSelect";
 import { Button } from "@/components/ui/button";
-import { Mail, ClipboardList, StickyNote, ArrowDown } from "lucide-react";
+import { Mail, ClipboardList, StickyNote, ArrowDown, Target } from "lucide-react";
 import { formatCurrencyShort, formatPct } from "@/lib/format";
 import { useModals } from "@/components/modals/ModalsProvider";
 
@@ -71,11 +71,18 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          onClick={() => modals.startCreatePlan(account)}
+          style={{ backgroundColor: "var(--primary)", color: "white" }}
+        >
+          <Target className="mr-1 h-3.5 w-3.5" /> Create Action Plan
+        </Button>
         <Button size="sm" variant="outline" onClick={() => modals.openEmail(account)}>
           <Mail className="mr-1 h-3.5 w-3.5" /> Draft Email
         </Button>
         <Button size="sm" variant="outline" onClick={() => modals.openPlan(account)}>
-          <ClipboardList className="mr-1 h-3.5 w-3.5" /> View Plan
+          <ClipboardList className="mr-1 h-3.5 w-3.5" /> Quick Plan
         </Button>
         <Button size="sm" variant="outline" onClick={() => openAccount(account.id)}>
           <StickyNote className="mr-1 h-3.5 w-3.5" /> Add Note

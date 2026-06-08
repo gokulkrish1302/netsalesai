@@ -10,10 +10,26 @@ import { CategoryDonut } from "@/components/dashboard/CategoryDonut";
 import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
 import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
 import { ContextPreview } from "@/components/dashboard/ContextPreview";
+import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";
 import type { ScoredAccount } from "@/lib/types";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 
 export const Route = createFileRoute("/")({
   head: () => ({

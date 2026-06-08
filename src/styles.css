@@ -62,11 +62,11 @@
 }
 
 :root {
-  --radius: 0.75rem;
-  /* Material-3 inspired warm light surface */
-  --background: oklch(0.985 0.003 247);          /* #F8FAFC ish */
+  --radius: 0.875rem;
+  /* Cloud White surface — calmer, friendlier */
+  --background: oklch(0.987 0.003 247);          /* #fafbfc */
   --surface-1: oklch(0.975 0.004 247);
-  --surface-2: oklch(0.962 0.005 247);
+  --surface-2: oklch(0.96 0.005 247);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.22 0.02 264);
   --popover: oklch(1 0 0);

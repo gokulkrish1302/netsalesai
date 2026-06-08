@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -13,9 +13,11 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   rep: RepProfile | null;
+  isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -23,13 +25,16 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [rep, setRep] = useState<RepProfile | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listener first, then initial session
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
-      if (!s) setRep(null);
+      if (!s) {
+        setRep(null);
+        setIsAdmin(false);
+      }
     });
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -38,10 +43,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Load rep profile when session changes
+  const loadRole = useCallback(async (userId: string) => {
+    // Try to bootstrap admin if none exists yet — RPC is a no-op when one does.
+    await supabase.rpc("bootstrap_admin").catch(() => {});
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!data);
+  }, []);
+
   useEffect(() => {
     if (!session?.user) {
       setRep(null);
+      setIsAdmin(false);
       return;
     }
     let cancelled = false;
@@ -55,7 +72,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (data) {
         setRep(data as RepProfile);
       } else {
-        // Fallback profile from auth user if reps row missing
         setRep({
           id: session.user.id,
           email: session.user.email ?? "",
@@ -63,11 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           region: (session.user.user_metadata?.region as string) ?? "—",
         });
       }
+      await loadRole(session.user.id);
     })();
     return () => {
       cancelled = true;
     };
-  }, [session]);
+  }, [session, loadRole]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -78,8 +95,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   };
 
+  const refreshRole = useCallback(async () => {
+    if (session?.user) await loadRole(session.user.id);
+  }, [session, loadRole]);
+
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, rep, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        rep,
+        isAdmin,
+        loading,
+        signIn,
+        signOut,
+        refreshRole,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

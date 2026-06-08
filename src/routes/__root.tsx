@@ -94,7 +94,7 @@ function AppShell() {
           <DbSync />
           <div className="min-h-screen bg-background">
             <Sidebar />
-            <div className="md:pl-[72px]">
+            <div className="md:pl-[240px]">
               <TopBar />
               <main className="p-4 pb-20 md:p-8 md:pb-8">
                 <Outlet />

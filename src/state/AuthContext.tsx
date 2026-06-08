@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadRole = useCallback(async (userId: string) => {
     // Try to bootstrap admin if none exists yet — RPC is a no-op when one does.
-    await supabase.rpc("bootstrap_admin").catch(() => {});
+    try { await supabase.rpc("bootstrap_admin" as any); } catch { /* noop */ }
     const { data } = await supabase
       .from("user_roles")
       .select("role")

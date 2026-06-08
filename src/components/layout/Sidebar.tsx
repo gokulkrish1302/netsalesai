@@ -23,16 +23,11 @@ const items: NavItem[] = [
 
 export const SIDEBAR_W = 72;
 
-const ACTIVE_PLAN_STAGES = new Set(["contacted", "meeting_scheduled", "proposal_sent"]);
-
 export function Sidebar() {
   const path = useRouterState({ select: (s) => s.location.pathname });
-  const { scoredAccounts, state } = useApp();
+  const { scoredAccounts, activePlanCount } = useApp();
   const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
-  const planCount = scoredAccounts.filter((a) => {
-    const stage = state.pipelineStages[a.id] ?? a.pipelineStage;
-    return ACTIVE_PLAN_STAGES.has(stage);
-  }).length;
+  const planCount = activePlanCount;
 
   function badgeCount(b: NavItem["badge"]) {
     if (b === "renewals") return urgentCount;

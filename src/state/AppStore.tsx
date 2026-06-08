@@ -1,7 +1,31 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
-import type { Account, CallLog, Category, PipelineStage, ScoredAccount, StageHistoryEntry, Weights } from "@/lib/types";
+import type {
+  Account,
+  ActionPlanActivity,
+  ActionPlanEntry,
+  ActionPlanStatus,
+  CallLog,
+  Category,
+  PipelineStage,
+  ScoredAccount,
+  StageHistoryEntry,
+  Urgency,
+  Weights,
+} from "@/lib/types";
+
+export const MAX_ACTIVE_PLANS = 20;
+export const ACTIVE_PLAN_STATUSES: ActionPlanStatus[] = [
+  "not_contacted",
+  "contacted",
+  "meeting_scheduled",
+  "proposal_sent",
+];
+
+export function isActivePlan(p: ActionPlanEntry) {
+  return ACTIVE_PLAN_STATUSES.includes(p.status);
+}
 
 interface DeprioritizeEntry {
   category: Category;
@@ -19,6 +43,7 @@ interface AppState {
   callLogs: Record<string, CallLog[]>;
   importedAccounts: Account[];
   deprioritized: Record<string, DeprioritizeEntry>;
+  actionPlans: Record<string, ActionPlanEntry>;
   activeAccountId: string | null;
 }
 
@@ -32,10 +57,15 @@ type Action =
   | { type: "REMOVE_IMPORTED"; id: string }
   | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
   | { type: "UNDO_DEPRIORITIZE"; accountId: string }
+  | { type: "CREATE_PLAN"; accountId: string; urgency: Urgency }
+  | { type: "SET_PLAN_STATUS"; accountId: string; status: ActionPlanStatus; decidingFactor?: string }
+  | { type: "ADD_PLAN_ACTIVITY"; accountId: string; activity: ActionPlanActivity }
+  | { type: "SET_PLAN_NEXT_STEP"; accountId: string; nextStep: string }
+  | { type: "REMOVE_PLAN"; accountId: string }
   | { type: "OPEN_ACCOUNT"; accountId: string | null };
 
-const LS_KEY = "netapp-cma-state-v3";
-const LS_LEGACY_KEYS = ["netapp-cma-state-v2", "netapp-cma-state-v1"];
+const LS_KEY = "netapp-cma-state-v4";
+const LS_LEGACY_KEYS = ["netapp-cma-state-v3", "netapp-cma-state-v2", "netapp-cma-state-v1"];
 
 function loadPersisted(): Partial<AppState> {
   if (typeof window === "undefined") return {};
@@ -69,6 +99,7 @@ function initial(): AppState {
     callLogs: persisted.callLogs ?? {},
     importedAccounts: imported,
     deprioritized: persisted.deprioritized ?? {},
+    actionPlans: persisted.actionPlans ?? {},
     activeAccountId: null,
   };
 }
@@ -142,6 +173,72 @@ function reducer(state: AppState, action: Action): AppState {
       delete next[action.accountId];
       return { ...state, deprioritized: next };
     }
+    case "CREATE_PLAN": {
+      const now = new Date().toISOString();
+      const existing = state.actionPlans[action.accountId];
+      if (existing && isActivePlan(existing)) return state;
+      const plan: ActionPlanEntry = {
+        accountId: action.accountId,
+        urgency: action.urgency,
+        status: "not_contacted",
+        createdAt: now,
+        activities: [
+          { id: `act-${Date.now()}`, type: "status", text: `Plan created (${action.urgency.replace(/_/g, " ")})`, createdAt: now },
+        ],
+      };
+      return { ...state, actionPlans: { ...state.actionPlans, [action.accountId]: plan } };
+    }
+    case "SET_PLAN_STATUS": {
+      const now = new Date().toISOString();
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      const closed = action.status === "won" || action.status === "lost";
+      const updated: ActionPlanEntry = {
+        ...existing,
+        status: action.status,
+        decidingFactor: action.decidingFactor ?? existing.decidingFactor,
+        closedAt: closed ? now : existing.closedAt,
+        activities: [
+          {
+            id: `act-${Date.now()}`,
+            type: "status",
+            text: closed
+              ? `Marked ${action.status.toUpperCase()}${action.decidingFactor ? ` — ${action.decidingFactor}` : ""}`
+              : `Status → ${action.status.replace(/_/g, " ")}`,
+            createdAt: now,
+          },
+          ...existing.activities,
+        ],
+      };
+      return { ...state, actionPlans: { ...state.actionPlans, [action.accountId]: updated } };
+    }
+    case "ADD_PLAN_ACTIVITY": {
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      return {
+        ...state,
+        actionPlans: {
+          ...state.actionPlans,
+          [action.accountId]: { ...existing, activities: [action.activity, ...existing.activities] },
+        },
+      };
+    }
+    case "SET_PLAN_NEXT_STEP": {
+      const existing = state.actionPlans[action.accountId];
+      if (!existing) return state;
+      return {
+        ...state,
+        actionPlans: {
+          ...state.actionPlans,
+          [action.accountId]: { ...existing, nextStepOverride: action.nextStep },
+        },
+      };
+    }
+    case "REMOVE_PLAN": {
+      const next = { ...state.actionPlans };
+      delete next[action.accountId];
+      return { ...state, actionPlans: next };
+    }
     case "OPEN_ACCOUNT":
       return { ...state, activeAccountId: action.accountId };
     default:
@@ -154,6 +251,7 @@ interface AppContextValue {
   scoredAccounts: ScoredAccount[];
   previousScoredAccounts: ScoredAccount[];
   activeAccount: ScoredAccount | null;
+  activePlanCount: number;
   setWeights: (w: Weights) => void;
   resetWeights: () => void;
   setStage: (accountId: string, stage: PipelineStage) => void;
@@ -163,6 +261,11 @@ interface AppContextValue {
   removeImportedAccount: (id: string) => void;
   deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
   undoDeprioritize: (accountId: string) => void;
+  createPlan: (accountId: string, urgency: Urgency) => void;
+  setPlanStatus: (accountId: string, status: ActionPlanStatus, decidingFactor?: string) => void;
+  addPlanActivity: (accountId: string, activity: ActionPlanActivity) => void;
+  setPlanNextStep: (accountId: string, nextStep: string) => void;
+  removePlan: (accountId: string) => void;
   openAccount: (accountId: string | null) => void;
 }
 
@@ -190,6 +293,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       callLogs: state.callLogs,
       importedAccounts: state.importedAccounts,
       deprioritized: state.deprioritized,
+      actionPlans: state.actionPlans,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
   }, [
@@ -200,6 +304,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.callLogs,
     state.importedAccounts,
     state.deprioritized,
+    state.actionPlans,
   ]);
 
   const accountsWithStages: Account[] = useMemo(
@@ -271,6 +376,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (accountId: string | null) => dispatch({ type: "OPEN_ACCOUNT", accountId }),
     [],
   );
+  const createPlan = useCallback(
+    (accountId: string, urgency: Urgency) => dispatch({ type: "CREATE_PLAN", accountId, urgency }),
+    [],
+  );
+  const setPlanStatus = useCallback(
+    (accountId: string, status: ActionPlanStatus, decidingFactor?: string) =>
+      dispatch({ type: "SET_PLAN_STATUS", accountId, status, decidingFactor }),
+    [],
+  );
+  const addPlanActivity = useCallback(
+    (accountId: string, activity: ActionPlanActivity) =>
+      dispatch({ type: "ADD_PLAN_ACTIVITY", accountId, activity }),
+    [],
+  );
+  const setPlanNextStep = useCallback(
+    (accountId: string, nextStep: string) =>
+      dispatch({ type: "SET_PLAN_NEXT_STEP", accountId, nextStep }),
+    [],
+  );
+  const removePlan = useCallback(
+    (accountId: string) => dispatch({ type: "REMOVE_PLAN", accountId }),
+    [],
+  );
+
+  const activePlanCount = useMemo(
+    () => Object.values(state.actionPlans).filter(isActivePlan).length,
+    [state.actionPlans],
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setPreviousWeights(state.weights), 4000);
@@ -282,6 +415,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     scoredAccounts,
     previousScoredAccounts,
     activeAccount,
+    activePlanCount,
     setWeights,
     resetWeights,
     setStage,
@@ -291,6 +425,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     removeImportedAccount,
     deprioritize,
     undoDeprioritize,
+    createPlan,
+    setPlanStatus,
+    addPlanActivity,
+    setPlanNextStep,
+    removePlan,
     openAccount,
   };
 

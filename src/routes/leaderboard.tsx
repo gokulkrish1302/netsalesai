@@ -4,7 +4,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/state/AppStore";
 import { CATEGORY_META } from "@/lib/scoring";
 import { STAGE_LABEL, formatCurrencyShort } from "@/lib/format";
+import { SourceBadge } from "@/components/common/SourceBadge";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/leaderboard")({
   head: () => ({
@@ -108,11 +110,15 @@ function LeaderboardPage() {
                     </span>
                   </div>
                   <div className="col-span-5 min-w-0">
-                    <div className="truncate text-sm font-semibold">{a.accountName}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold">{a.accountName}</span>
+                      <SourceBadge source={a.dataSource} size="xs" />
+                    </div>
                     <div className="truncate text-[11px] text-muted-foreground">
                       {a.industry} · {a.region} · {a.salesRep}
                     </div>
                   </div>
+
                   <div className="col-span-3 text-[11px] text-muted-foreground">
                     {STAGE_LABEL[a.pipelineStage]}
                   </div>

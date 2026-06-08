@@ -2,9 +2,11 @@ import { useApp } from "@/state/AppStore";
 import { CATEGORY_META } from "@/lib/scoring";
 import { Button } from "@/components/ui/button";
 import { CategoryPill } from "@/components/common/CategoryPill";
+import { SourceBadge } from "@/components/common/SourceBadge";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { Clock, Database, ArrowRight, Sparkles } from "lucide-react";
 import { formatPct } from "@/lib/format";
+
 
 export function TopPriorityCard() {
   const { scoredAccounts, openAccount } = useApp();
@@ -44,10 +46,12 @@ export function TopPriorityCard() {
           >
             {top.accountName}
           </button>
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <CategoryPill category={top.category} />
+            <SourceBadge source={top.dataSource} size="xs" />
             <span className="text-[11px] text-muted-foreground">{top.industry} · {top.region}</span>
           </div>
+
         </div>
       </div>
 

@@ -34,6 +34,8 @@ function rowToAccount(row: {
     annualRevenue: 0,
     lastContactDate: null,
     pipelineStage: (row.status as PipelineStage) ?? "not_contacted",
+    dataSource: "active_iq",
+    sourceTimestamp: new Date().toISOString(),
   };
 }
 

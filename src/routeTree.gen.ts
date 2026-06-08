@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as RenewalsRouteImport } from './routes/renewals'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AccountsRouteImport } from './routes/accounts'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const LeaderboardRoute = LeaderboardRouteImport.update({
   path: '/leaderboard',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AccountsRoute = AccountsRouteImport.update({
   id: '/accounts',
   path: '/accounts',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
@@ -59,19 +67,27 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accounts': typeof AccountsRoute
+  '/auth': typeof AuthRoute
   '/leaderboard': typeof LeaderboardRoute
   '/renewals': typeof RenewalsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/accounts' | '/leaderboard' | '/renewals' | '/settings'
+  fullPaths:
+    | '/'
+    | '/accounts'
+    | '/auth'
+    | '/leaderboard'
+    | '/renewals'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accounts' | '/leaderboard' | '/renewals' | '/settings'
+  to: '/' | '/accounts' | '/auth' | '/leaderboard' | '/renewals' | '/settings'
   id:
     | '__root__'
     | '/'
     | '/accounts'
+    | '/auth'
     | '/leaderboard'
     | '/renewals'
     | '/settings'
@@ -80,6 +96,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccountsRoute: typeof AccountsRoute
+  AuthRoute: typeof AuthRoute
   LeaderboardRoute: typeof LeaderboardRoute
   RenewalsRoute: typeof RenewalsRoute
   SettingsRoute: typeof SettingsRoute
@@ -108,6 +125,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeaderboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/accounts': {
       id: '/accounts'
       path: '/accounts'
@@ -128,6 +152,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccountsRoute: AccountsRoute,
+  AuthRoute: AuthRoute,
   LeaderboardRoute: LeaderboardRoute,
   RenewalsRoute: RenewalsRoute,
   SettingsRoute: SettingsRoute,
@@ -135,13 +160,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

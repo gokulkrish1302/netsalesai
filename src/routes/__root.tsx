@@ -11,6 +11,9 @@ import appCss from "../styles.css?url";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { AppProvider } from "@/state/AppStore";
+import { AuthProvider } from "@/state/AuthContext";
+import { DbSync } from "@/state/DbSync";
+import { RouteGate, useIsAuthRoute } from "@/components/auth/RouteGate";
 import { ModalsProvider } from "@/components/modals/ModalsProvider";
 import { AccountDetailPanel } from "@/components/detail/AccountDetailPanel";
 import { Toaster } from "@/components/ui/sonner";
@@ -75,21 +78,36 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <AppProvider>
-        <ModalsProvider>
-          <div className="min-h-screen bg-background">
-            <Sidebar />
-            <div className="md:pl-[72px]">
-              <TopBar />
-              <main className="p-4 pb-20 md:p-8 md:pb-8">
-                <Outlet />
-              </main>
-            </div>
-            <AccountDetailPanel />
-            <Toaster position="bottom-right" />
-          </div>
-        </ModalsProvider>
-      </AppProvider>
+      <AuthProvider>
+        <RouteGate>
+          <AppShell />
+        </RouteGate>
+        <Toaster position="bottom-right" />
+      </AuthProvider>
     </QueryClientProvider>
+  );
+}
+
+function AppShell() {
+  const isAuthRoute = useIsAuthRoute();
+  if (isAuthRoute) {
+    return <Outlet />;
+  }
+  return (
+    <AppProvider>
+      <ModalsProvider>
+        <DbSync />
+        <div className="min-h-screen bg-background">
+          <Sidebar />
+          <div className="md:pl-[72px]">
+            <TopBar />
+            <main className="p-4 pb-20 md:p-8 md:pb-8">
+              <Outlet />
+            </main>
+          </div>
+          <AccountDetailPanel />
+        </div>
+      </ModalsProvider>
+    </AppProvider>
   );
 }

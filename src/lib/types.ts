@@ -75,6 +75,33 @@ export interface ScoredAccount extends Account {
   delta: number;
 }
 
+export type Urgency = "this_week" | "this_month" | "this_quarter";
+export type ActionPlanStatus =
+  | "not_contacted"
+  | "contacted"
+  | "meeting_scheduled"
+  | "proposal_sent"
+  | "won"
+  | "lost";
+
+export interface ActionPlanActivity {
+  id: string;
+  type: "note" | "call" | "email" | "status";
+  text: string;
+  createdAt: string;
+}
+
+export interface ActionPlanEntry {
+  accountId: string;
+  urgency: Urgency;
+  status: ActionPlanStatus;
+  createdAt: string;
+  closedAt?: string;
+  decidingFactor?: string;
+  nextStepOverride?: string;
+  activities: ActionPlanActivity[];
+}
+
 export interface CallLog {
   id: string;
   accountId: string;

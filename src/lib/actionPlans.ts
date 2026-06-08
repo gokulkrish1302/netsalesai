@@ -1,5 +1,98 @@
-import type { ScoredAccount } from "./types";
+import type { ScoredAccount, Urgency, Industry } from "./types";
 import { formatCurrencyShort } from "./format";
+
+export const URGENCY_LABEL: Record<Urgency, string> = {
+  this_week: "This Week",
+  this_month: "This Month",
+  this_quarter: "This Quarter",
+};
+
+export interface TimelineStep {
+  day: number;
+  label: string;
+  action: string;
+}
+
+export function buildUrgencyTimeline(account: ScoredAccount, urgency: Urgency): TimelineStep[] {
+  const days =
+    urgency === "this_week"
+      ? [1, 2, 4, 7]
+      : urgency === "this_month"
+        ? [1, 3, 7, 14]
+        : [1, 7, 21, 45];
+  const renewalStr = new Date(Date.now() + account.contractRenewalDays * 86_400_000).toLocaleDateString(
+    "en-US",
+    { month: "short", day: "numeric" },
+  );
+  const actions = [
+    `Send personalized intro email referencing the ${account.deviceModel} (${account.deviceAgeYears.toFixed(1)} yrs) and ${account.utilizationPct}% utilization.`,
+    `Phone follow-up to schedule a 30-min discovery call. Lead with the ${renewalStr} renewal window.`,
+    `Discovery meeting + BlueXP / Cloud Insights demo tailored to current workload mix.`,
+    `Send proposal with ROI summary (${formatCurrencyShort(Math.round(account.itBudgetUSD * 0.12))}–${formatCurrencyShort(Math.round(account.itBudgetUSD * 0.28))}) aligned to renewal date.`,
+  ];
+  return days.map((d, i) => ({ day: d, label: `Day ${d}`, action: actions[i] }));
+}
+
+export function buildAccountSummary(account: ScoredAccount): string {
+  const renewalStr = new Date(Date.now() + account.contractRenewalDays * 86_400_000).toLocaleDateString(
+    "en-US",
+    { month: "short", day: "numeric", year: "numeric" },
+  );
+  const urgencyHook =
+    account.contractRenewalDays <= 90
+      ? `renewal closes in ${account.contractRenewalDays} days (${renewalStr})`
+      : `renewal on ${renewalStr} gives a clear runway`;
+  return `${account.accountName} scores ${account.score}/100 (${account.category}). Storage utilization sits at ${account.utilizationPct}% on a ${account.deviceAgeYears.toFixed(1)}-year-old ${account.deviceModel}, IT budget is ${formatCurrencyShort(account.itBudgetUSD)}, and the ${urgencyHook}. The combination of aging hardware, capacity pressure, and the upcoming contract inflection make this a priority touch.`;
+}
+
+const INDUSTRY_OBJECTIONS: Record<Industry, { objection: string; response: string }[]> = {
+  Finance: [
+    { objection: "Compliance and data residency are non-negotiable.", response: "BlueXP supports regional encryption, sovereign cloud regions, and audit logging — many of our largest financial customers run regulated workloads on it." },
+    { objection: "We can't afford downtime during a migration.", response: "SnapMirror enables incremental, online cutovers — zero-downtime migrations are the standard pattern, not the exception." },
+  ],
+  Healthcare: [
+    { objection: "HIPAA and PHI handling rules me out of cloud.", response: "Our cloud volumes are HIPAA-eligible with BAAs in place across AWS, Azure, and GCP. PHI stays encrypted at rest and in flight." },
+    { objection: "Clinical apps can't tolerate latency variability.", response: "FlexCache and tiered storage keep hot data local — clinical IO stays predictable while cold data tiers to cloud." },
+  ],
+  Government: [
+    { objection: "We require FedRAMP and air-gapped options.", response: "NetApp is FedRAMP authorized across multiple impact levels and supports GovCloud and on-prem-only deployments." },
+    { objection: "Procurement cycles take 12+ months.", response: "Keystone subscription pricing fits existing OpEx vehicles and is on most federal contract schedules — we can align to your buying motion." },
+  ],
+  Tech: [
+    { objection: "We're already cloud-native — why NetApp?", response: "BlueXP gives you portable data services across clouds without vendor lock-in. It complements your stack, not replaces it." },
+    { objection: "We can just use native cloud storage.", response: "Native cloud storage gets expensive at scale. Cloud Volumes ONTAP cuts cloud storage TCO 30–50% with dedup, compression, and cloning." },
+  ],
+  Retail: [
+    { objection: "Our peak season is non-negotiable — no risk.", response: "We run pilot migrations outside peak windows and use SnapMirror for cutover. Many retailers refresh between Q1 and Q3." },
+    { objection: "Margins are thin — capex is hard to justify.", response: "Keystone OpEx subscription converts the conversation from capex to predictable monthly spend tied to actual consumption." },
+  ],
+  Manufacturing: [
+    { objection: "Plant-floor systems can't be touched.", response: "Edge-to-core-to-cloud architecture leaves OT systems untouched while modernizing the data layer behind them." },
+    { objection: "We don't have cloud skills in-house.", response: "BlueXP unifies on-prem and cloud under one console — your existing ONTAP admins manage cloud the same way they manage on-prem." },
+  ],
+};
+
+export function buildIndustryObjections(account: ScoredAccount) {
+  return INDUSTRY_OBJECTIONS[account.industry] ?? INDUSTRY_OBJECTIONS.Tech;
+}
+
+export function estimateDealSize(account: ScoredAccount): { low: number; high: number } {
+  const base = account.itBudgetUSD * (account.category === "HOT" ? 0.18 : account.category === "WARM" ? 0.12 : 0.06);
+  return { low: Math.round(base * 0.7), high: Math.round(base * 1.4) };
+}
+
+export function suggestNextStep(noteText: string, fallback: string): string {
+  const t = noteText.toLowerCase();
+  if (/voicemail|left.*message|no answer/.test(t)) return "Try again at a different time of day; send a brief follow-up email referencing the voicemail.";
+  if (/meeting (set|scheduled|booked)|calendar/.test(t)) return "Prep an agenda + tailored demo; share read-ahead materials 24 hours before.";
+  if (/proposal|quote|pricing/.test(t)) return "Follow up in 3 business days; confirm proposal received and offer a walkthrough.";
+  if (/budget|cfo|finance|procurement/.test(t)) return "Loop in your account exec to position Keystone OpEx and align to fiscal cycle.";
+  if (/competitor|pure|dell|hpe|aws|azure/.test(t)) return "Build a side-by-side comparison; emphasize multi-cloud portability and TCO over 36 months.";
+  if (/not interested|pass|busy|later/.test(t)) return "Move to a quarterly nurture cadence; send a relevant case study in 30 days.";
+  if (/decision maker|cio|cto|vp|director/.test(t)) return "Request an exec briefing; bring a customer reference from the same industry.";
+  if (/won|signed|closed/.test(t)) return "Mark status as Won and capture the deciding factor for the team.";
+  return fallback;
+}
 
 export interface ActionPlan {
   executiveSummary: string;

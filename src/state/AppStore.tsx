@@ -1,7 +1,31 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
-import type { Account, CallLog, Category, PipelineStage, ScoredAccount, StageHistoryEntry, Weights } from "@/lib/types";
+import type {
+  Account,
+  ActionPlanActivity,
+  ActionPlanEntry,
+  ActionPlanStatus,
+  CallLog,
+  Category,
+  PipelineStage,
+  ScoredAccount,
+  StageHistoryEntry,
+  Urgency,
+  Weights,
+} from "@/lib/types";
+
+export const MAX_ACTIVE_PLANS = 20;
+export const ACTIVE_PLAN_STATUSES: ActionPlanStatus[] = [
+  "not_contacted",
+  "contacted",
+  "meeting_scheduled",
+  "proposal_sent",
+];
+
+export function isActivePlan(p: ActionPlanEntry) {
+  return ACTIVE_PLAN_STATUSES.includes(p.status);
+}
 
 interface DeprioritizeEntry {
   category: Category;
@@ -19,6 +43,7 @@ interface AppState {
   callLogs: Record<string, CallLog[]>;
   importedAccounts: Account[];
   deprioritized: Record<string, DeprioritizeEntry>;
+  actionPlans: Record<string, ActionPlanEntry>;
   activeAccountId: string | null;
 }
 
@@ -32,10 +57,15 @@ type Action =
   | { type: "REMOVE_IMPORTED"; id: string }
   | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
   | { type: "UNDO_DEPRIORITIZE"; accountId: string }
+  | { type: "CREATE_PLAN"; accountId: string; urgency: Urgency }
+  | { type: "SET_PLAN_STATUS"; accountId: string; status: ActionPlanStatus; decidingFactor?: string }
+  | { type: "ADD_PLAN_ACTIVITY"; accountId: string; activity: ActionPlanActivity }
+  | { type: "SET_PLAN_NEXT_STEP"; accountId: string; nextStep: string }
+  | { type: "REMOVE_PLAN"; accountId: string }
   | { type: "OPEN_ACCOUNT"; accountId: string | null };
 
-const LS_KEY = "netapp-cma-state-v3";
-const LS_LEGACY_KEYS = ["netapp-cma-state-v2", "netapp-cma-state-v1"];
+const LS_KEY = "netapp-cma-state-v4";
+const LS_LEGACY_KEYS = ["netapp-cma-state-v3", "netapp-cma-state-v2", "netapp-cma-state-v1"];
 
 function loadPersisted(): Partial<AppState> {
   if (typeof window === "undefined") return {};

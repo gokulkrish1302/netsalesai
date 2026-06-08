@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
-// MOCK_ACCOUNTS removed — app starts empty; data comes from Import.
+import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
 import type {
   Account,

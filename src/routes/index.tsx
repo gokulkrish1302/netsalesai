@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { StatStrip } from "@/components/dashboard/StatStrip";
 import { PriorityMatrix } from "@/components/dashboard/PriorityMatrix";
@@ -6,6 +6,10 @@ import { TopPriorityCard } from "@/components/dashboard/TopPriorityCard";
 import { RenewalRadar } from "@/components/dashboard/RenewalRadar";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
 import { DashboardBar } from "@/components/dashboard/DashboardBar";
+import { CategoryDonut } from "@/components/dashboard/CategoryDonut";
+import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
+import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
+import { ContextPreview } from "@/components/dashboard/ContextPreview";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";
@@ -30,21 +34,34 @@ function Dashboard() {
   const { scoredAccounts } = useApp();
   const { active } = useDashboards();
   const layout = active?.layout ?? DEFAULT_LAYOUT;
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const filtered: ScoredAccount[] = useMemo(() => {
-    const { region, industry, category } = layout.filters;
-    return scoredAccounts.filter(
-      (a) =>
-        (!region || a.region === region) &&
-        (!industry || a.industry === industry) &&
-        (!category || a.category === category),
-    );
+    const f = layout.filters;
+    return scoredAccounts.filter((a) => {
+      if (f.region && a.region !== f.region) return false;
+      if (f.industry && a.industry !== f.industry) return false;
+      if (f.category && a.category !== f.category) return false;
+      if (f.source && (a.dataSource ?? "active_iq") !== f.source) return false;
+      if (f.rep && a.salesRep !== f.rep) return false;
+      if (f.scoreMin !== undefined && a.score < f.scoreMin) return false;
+      if (f.scoreMax !== undefined && a.score > f.scoreMax) return false;
+      if (f.renewalWindow) {
+        const d = a.contractRenewalDays;
+        if (f.renewalWindow === "30" && d > 30) return false;
+        if (f.renewalWindow === "60" && d > 60) return false;
+        if (f.renewalWindow === "90" && d > 90) return false;
+        if (f.renewalWindow === "90plus" && d <= 90) return false;
+      }
+      return true;
+    });
   }, [scoredAccounts, layout.filters]);
 
   const source = rep?.name || user?.email?.split("@")[0] || "there";
   const firstName = source.split(/[\s.]+/)[0].replace(/^./, (c) => c.toUpperCase());
 
-  const activeFilters = Object.entries(layout.filters).filter(([, v]) => Boolean(v));
+  const activeFilters = Object.entries(layout.filters).filter(([, v]) => v !== undefined && v !== "");
+  const visibleSet = new Set(layout.widgets.filter((w) => w.visible).map((w) => w.key));
 
   const renderWidget = (key: WidgetKey) => {
     switch (key) {
@@ -59,31 +76,55 @@ function Dashboard() {
               <PriorityMatrix accounts={filtered} />
             </div>
             <div className="flex flex-col gap-5 lg:col-span-2">
-              {layout.widgets.find((w) => w.key === "top")?.visible && (
-                <TopPriorityCard accounts={filtered} />
-              )}
-              {layout.widgets.find((w) => w.key === "renewal")?.visible && (
-                <RenewalRadar accounts={filtered} />
-              )}
+              {visibleSet.has("top") && <TopPriorityCard accounts={filtered} />}
+              {visibleSet.has("renewal") && <RenewalRadar accounts={filtered} />}
             </div>
           </div>
         );
-      // Top + Renewal are rendered inside the matrix block when matrix is visible.
-      // If matrix is hidden, render them standalone.
       case "top":
-        if (layout.widgets.find((w) => w.key === "matrix")?.visible) return null;
+        if (visibleSet.has("matrix")) return null;
         return (
           <div key="top" className="max-w-md">
             <TopPriorityCard accounts={filtered} />
           </div>
         );
       case "renewal":
-        if (layout.widgets.find((w) => w.key === "matrix")?.visible) return null;
+        if (visibleSet.has("matrix")) return null;
         return (
           <div key="renewal" className="max-w-md">
             <RenewalRadar accounts={filtered} />
           </div>
         );
+      case "ranked":
+        // Render ranked + context as a paired 2-col block when both visible.
+        if (visibleSet.has("context")) {
+          return (
+            <div key="ranked-context" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <RankedAccountsList accounts={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+              <ContextPreview accounts={filtered} selectedId={selectedId} />
+            </div>
+          );
+        }
+        return (
+          <div key="ranked" className="max-w-md">
+            <RankedAccountsList accounts={filtered} selectedId={selectedId} onSelect={setSelectedId} />
+          </div>
+        );
+      case "context":
+        if (visibleSet.has("ranked")) return null;
+        return (
+          <div key="context" className="max-w-md">
+            <ContextPreview accounts={filtered} selectedId={selectedId} />
+          </div>
+        );
+      case "donut":
+        return (
+          <div key="donut" className="max-w-md">
+            <CategoryDonut accounts={filtered} />
+          </div>
+        );
+      case "topbar":
+        return <TopAccountsBar key="topbar" accounts={filtered} />;
       default:
         return null;
     }

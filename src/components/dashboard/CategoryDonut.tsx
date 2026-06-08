@@ -1,18 +1,19 @@
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { useApp } from "@/state/AppStore";
 import { CATEGORY_META } from "@/lib/scoring";
-import type { Category } from "@/lib/types";
+import type { Category, ScoredAccount } from "@/lib/types";
 
 const ORDER: Category[] = ["HOT", "WARM", "COLD", "NOT_READY"];
 
-export function CategoryDonut() {
+export function CategoryDonut({ accounts }: { accounts?: ScoredAccount[] } = {}) {
   const { scoredAccounts } = useApp();
+  const source = accounts ?? scoredAccounts;
   const data = ORDER.map((c) => ({
     name: CATEGORY_META[c].label,
-    value: scoredAccounts.filter((a) => a.category === c).length,
+    value: source.filter((a) => a.category === c).length,
     color: CATEGORY_META[c].color,
   }));
-  const total = scoredAccounts.length;
+  const total = source.length;
   return (
     <div className="app-card p-5">
       <h3 className="mb-2 text-sm font-semibold">Account Mix</h3>

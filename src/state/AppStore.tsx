@@ -35,6 +35,14 @@ interface DeprioritizeEntry {
   at: string;
 }
 
+export interface ImportRecord {
+  id: string;
+  filename: string;
+  importedAt: string;
+  count: number;
+  accountIds: string[];
+}
+
 interface AppState {
   weights: Weights;
   pipelineStages: Record<string, PipelineStage>;
@@ -42,6 +50,7 @@ interface AppState {
   notes: Record<string, { id: string; text: string; createdAt: string }[]>;
   callLogs: Record<string, CallLog[]>;
   importedAccounts: Account[];
+  importHistory: ImportRecord[];
   deprioritized: Record<string, DeprioritizeEntry>;
   actionPlans: Record<string, ActionPlanEntry>;
   activeAccountId: string | null;
@@ -53,8 +62,9 @@ type Action =
   | { type: "SET_STAGE"; accountId: string; stage: PipelineStage }
   | { type: "ADD_NOTE"; accountId: string; text: string }
   | { type: "ADD_CALL_LOG"; log: CallLog }
-  | { type: "ADD_IMPORTED"; accounts: Account[] }
+  | { type: "ADD_IMPORTED"; accounts: Account[]; filename?: string }
   | { type: "REMOVE_IMPORTED"; id: string }
+  | { type: "REMOVE_IMPORT_RECORD"; recordId: string }
   | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
   | { type: "UNDO_DEPRIORITIZE"; accountId: string }
   | { type: "CREATE_PLAN"; accountId: string; urgency: Urgency }
@@ -98,6 +108,7 @@ function initial(): AppState {
     notes: persisted.notes ?? {},
     callLogs: persisted.callLogs ?? {},
     importedAccounts: imported,
+    importHistory: persisted.importHistory ?? [],
     deprioritized: persisted.deprioritized ?? {},
     actionPlans: persisted.actionPlans ?? {},
     activeAccountId: null,
@@ -151,9 +162,17 @@ function reducer(state: AppState, action: Action): AppState {
       for (const a of action.accounts) {
         if (!nextStages[a.id]) nextStages[a.id] = a.pipelineStage;
       }
+      const record: ImportRecord = {
+        id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        filename: action.filename ?? "Untitled import",
+        importedAt: new Date().toISOString(),
+        count: action.accounts.length,
+        accountIds: action.accounts.map((a) => a.id),
+      };
       return {
         ...state,
         importedAccounts: [...action.accounts, ...state.importedAccounts],
+        importHistory: [record, ...state.importHistory],
         pipelineStages: nextStages,
       };
     }
@@ -161,6 +180,19 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         importedAccounts: state.importedAccounts.filter((a) => a.id !== action.id),
+        importHistory: state.importHistory
+          .map((r) => ({ ...r, accountIds: r.accountIds.filter((x) => x !== action.id) }))
+          .map((r) => ({ ...r, count: r.accountIds.length })),
+      };
+    }
+    case "REMOVE_IMPORT_RECORD": {
+      const rec = state.importHistory.find((r) => r.id === action.recordId);
+      if (!rec) return state;
+      const removeIds = new Set(rec.accountIds);
+      return {
+        ...state,
+        importedAccounts: state.importedAccounts.filter((a) => !removeIds.has(a.id)),
+        importHistory: state.importHistory.filter((r) => r.id !== action.recordId),
       };
     }
     case "DEPRIORITIZE":
@@ -257,8 +289,9 @@ interface AppContextValue {
   setStage: (accountId: string, stage: PipelineStage) => void;
   addNote: (accountId: string, text: string) => void;
   addCallLog: (log: CallLog) => void;
-  addImportedAccounts: (accounts: Account[]) => void;
+  addImportedAccounts: (accounts: Account[], filename?: string) => void;
   removeImportedAccount: (id: string) => void;
+  removeImportRecord: (recordId: string) => void;
   deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
   undoDeprioritize: (accountId: string) => void;
   createPlan: (accountId: string, urgency: Urgency) => void;
@@ -292,6 +325,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notes: state.notes,
       callLogs: state.callLogs,
       importedAccounts: state.importedAccounts,
+      importHistory: state.importHistory,
       deprioritized: state.deprioritized,
       actionPlans: state.actionPlans,
     };
@@ -305,6 +339,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.importedAccounts,
     state.deprioritized,
     state.actionPlans,
+    state.importHistory,
   ]);
 
   const accountsWithStages: Account[] = useMemo(
@@ -356,11 +391,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const addCallLog = useCallback((log: CallLog) => dispatch({ type: "ADD_CALL_LOG", log }), []);
   const addImportedAccounts = useCallback(
-    (accounts: Account[]) => dispatch({ type: "ADD_IMPORTED", accounts }),
+    (accounts: Account[], filename?: string) =>
+      dispatch({ type: "ADD_IMPORTED", accounts, filename }),
     [],
   );
   const removeImportedAccount = useCallback(
     (id: string) => dispatch({ type: "REMOVE_IMPORTED", id }),
+    [],
+  );
+  const removeImportRecord = useCallback(
+    (recordId: string) => dispatch({ type: "REMOVE_IMPORT_RECORD", recordId }),
     [],
   );
   const deprioritize = useCallback(
@@ -423,6 +463,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCallLog,
     addImportedAccounts,
     removeImportedAccount,
+    removeImportRecord,
     deprioritize,
     undoDeprioritize,
     createPlan,

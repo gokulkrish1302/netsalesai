@@ -71,7 +71,7 @@ export function ImportAccountsModal({
 
   function confirmImport() {
     if (!result?.accounts.length) return;
-    addImportedAccounts(result.accounts);
+    addImportedAccounts(result.accounts, filename ?? undefined);
     toast.success(`Imported ${result.accounts.length} account${result.accounts.length === 1 ? "" : "s"}`);
     onOpenChange(false);
     setTimeout(reset, 300);

@@ -3,12 +3,17 @@ import { formatCurrencyShort } from "@/lib/format";
 import { Users, Flame, TrendingUp, Target } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+const ACTIVE_PLAN_STAGES = new Set(["contacted", "meeting_scheduled", "proposal_sent"]);
+
 export function StatStrip() {
-  const { scoredAccounts } = useApp();
+  const { scoredAccounts, state } = useApp();
   const total = scoredAccounts.length;
   const hot = scoredAccounts.filter((a) => a.category === "HOT").length;
   const pipeline = scoredAccounts.reduce((s, a) => s + a.itBudgetUSD, 0);
-  const avg = Math.round((scoredAccounts.reduce((s, a) => s + a.score, 0) / total) * 10) / 10;
+  const activePlans = scoredAccounts.filter((a) => {
+    const stage = state.pipelineStages[a.id] ?? a.pipelineStage;
+    return ACTIVE_PLAN_STAGES.has(stage);
+  }).length;
 
   const stats: { label: string; value: string; icon: LucideIcon; tint: string; iconColor: string; live?: boolean }[] = [
     {
@@ -34,11 +39,11 @@ export function StatStrip() {
       iconColor: "var(--warm)",
     },
     {
-      label: "Avg Score",
-      value: avg.toFixed(1),
+      label: "Active Action Plans",
+      value: String(activePlans),
       icon: Target,
-      tint: "var(--cold-bg)",
-      iconColor: "var(--cold)",
+      tint: "color-mix(in oklab, var(--primary) 14%, transparent)",
+      iconColor: "var(--primary)",
     },
   ];
 

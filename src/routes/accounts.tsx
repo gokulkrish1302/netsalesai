@@ -40,6 +40,7 @@ const COLUMNS: Category[] = ["HOT", "WARM", "COLD", "NOT_READY"];
 
 type SortKey = "score" | "budget" | "deviceAge" | "renewal";
 type ViewMode = "board" | "list";
+type SourceFilter = "all" | "active_iq" | "excel_import";
 
 function AccountsPage() {
   const { scoredAccounts } = useApp();
@@ -47,6 +48,7 @@ function AccountsPage() {
   const [view, setView] = useState<ViewMode>("board");
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const [sortBy, setSortBy] = useState<SortKey>("score");
   const [overrides, setOverrides] = useState<Record<string, Category>>({});
   const [dragOver, setDragOver] = useState<Category | null>(null);
@@ -57,8 +59,12 @@ function AccountsPage() {
     );
     if (industries.length) list = list.filter((a) => industries.includes(a.industry));
     if (regions.length) list = list.filter((a) => regions.includes(a.region));
+    if (sourceFilter !== "all") {
+      list = list.filter((a) => (a.dataSource ?? "active_iq") === sourceFilter);
+    }
     return list;
-  }, [scoredAccounts, industries, regions, overrides]);
+  }, [scoredAccounts, industries, regions, sourceFilter, overrides]);
+
 
   const sorted = useMemo(() => {
     const arr = [...accounts];
@@ -119,7 +125,22 @@ function AccountsPage() {
       <div className="flex flex-wrap items-center gap-3">
         <MultiSelect label="Industry" options={INDUSTRIES} selected={industries} onChange={setIndustries as (s: string[]) => void} />
         <MultiSelect label="Region" options={REGIONS} selected={regions} onChange={setRegions as (s: string[]) => void} />
+        <div className="flex items-center gap-1 rounded-full bg-surface-2 p-1">
+          {(["all", "active_iq", "excel_import"] as SourceFilter[]).map((s) => (
+            <button
+              key={s}
+              onClick={() => setSourceFilter(s)}
+              className={cn(
+                "rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
+                sourceFilter === s ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {s === "all" ? "All sources" : s === "active_iq" ? "Active IQ" : "Excel"}
+            </button>
+          ))}
+        </div>
         {view === "list" && (
+
           <div className="ml-auto flex items-center gap-2">
             <span className="text-xs text-muted-foreground">Sort</span>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>

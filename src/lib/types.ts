@@ -15,6 +15,8 @@ export type Industry =
   | "Government";
 export type Region = "West" | "East" | "Central" | "EMEA" | "APAC";
 
+export type DataSource = "active_iq" | "excel_import";
+
 export interface Account {
   id: string;
   accountName: string;
@@ -33,6 +35,9 @@ export interface Account {
   annualRevenue: number;
   lastContactDate: string | null;
   pipelineStage: PipelineStage;
+  dataSource?: DataSource;
+  sourceTimestamp?: string;
+  missingFields?: string[];
 }
 
 export interface Weights {

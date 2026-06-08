@@ -144,6 +144,7 @@ export function parseAccountsWorkbook(buffer: ArrayBuffer, filename: string): Im
   const warnings: ImportResult["warnings"] = [];
   const accounts: Account[] = [];
   const baseId = filename.replace(/\W+/g, "-").toLowerCase() + "-" + Date.now().toString(36);
+  const uploadedAt = new Date().toISOString();
 
   rows.forEach((row, i) => {
     const rowNum = i + 2; // header is row 1
@@ -174,6 +175,17 @@ export function parseAccountsWorkbook(buffer: ArrayBuffer, filename: string): Im
     if (!normalized.region) warnings.push({ row: rowNum, message: `${accountName}: region defaulted to West` });
     if (!normalized.cloudStatus) warnings.push({ row: rowNum, message: `${accountName}: cloud status defaulted to none` });
 
+    const missingFields: string[] = [];
+    if (!normalized.industry) missingFields.push("Industry");
+    if (!normalized.region) missingFields.push("Region");
+    if (!normalized.companySize) missingFields.push("Company Size");
+    if (!normalized.deviceModel) missingFields.push("Device Model");
+    if (normalized.deviceAgeYears == null || normalized.deviceAgeYears === "") missingFields.push("Device Age");
+    if (!normalized.cloudStatus) missingFields.push("Cloud Status");
+    if (normalized.contractRenewalDays == null || normalized.contractRenewalDays === "") missingFields.push("Renewal Days");
+    if (normalized.itBudgetUSD == null || normalized.itBudgetUSD === "") missingFields.push("IT Budget");
+    if (!normalized.lastContactDate) missingFields.push("Last Contact Date");
+
     accounts.push({
       id: `imp-${baseId}-${i}`,
       accountName,
@@ -192,6 +204,9 @@ export function parseAccountsWorkbook(buffer: ArrayBuffer, filename: string): Im
       annualRevenue: revenue,
       lastContactDate: normalized.lastContactDate ? String(normalized.lastContactDate).slice(0, 30) : null,
       pipelineStage: pickStage(normalized.pipelineStage),
+      dataSource: "excel_import",
+      sourceTimestamp: uploadedAt,
+      missingFields,
     });
   });
 

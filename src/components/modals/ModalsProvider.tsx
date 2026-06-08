@@ -1,17 +1,19 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import type { ScoredAccount } from "@/lib/types";
 import { EmailModal } from "./EmailModal";
 import { ActionPlanModal } from "./ActionPlanModal";
 import { LogCallModal } from "./LogCallModal";
 import { ImportAccountsModal } from "./ImportAccountsModal";
+import { DeprioritizeModal } from "./DeprioritizeModal";
 
-type ModalKind = "email" | "plan" | "call" | null;
+type ModalKind = "email" | "plan" | "call" | "deprioritize" | null;
 
 interface ModalsCtx {
   openEmail: (a: ScoredAccount) => void;
   openPlan: (a: ScoredAccount) => void;
   openCall: (a: ScoredAccount) => void;
   openImport: () => void;
+  openDeprioritize: (a: ScoredAccount) => void;
 }
 
 const Ctx = createContext<ModalsCtx | null>(null);
@@ -21,10 +23,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<ScoredAccount | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
-  function open(k: ModalKind, a: ScoredAccount) {
+  const open = useCallback((k: ModalKind, a: ScoredAccount) => {
     setAccount(a);
     setKind(k);
-  }
+  }, []);
 
   return (
     <Ctx.Provider
@@ -33,6 +35,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
         openPlan: (a) => open("plan", a),
         openCall: (a) => open("call", a),
         openImport: () => setImportOpen(true),
+        openDeprioritize: (a) => open("deprioritize", a),
       }}
     >
       {children}
@@ -40,6 +43,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       <ActionPlanModal account={account} open={kind === "plan"} onOpenChange={(o) => !o && setKind(null)} />
       <LogCallModal account={account} open={kind === "call"} onOpenChange={(o) => !o && setKind(null)} />
       <ImportAccountsModal open={importOpen} onOpenChange={setImportOpen} />
+      <DeprioritizeModal account={account} open={kind === "deprioritize"} onOpenChange={(o) => !o && setKind(null)} />
     </Ctx.Provider>
   );
 }

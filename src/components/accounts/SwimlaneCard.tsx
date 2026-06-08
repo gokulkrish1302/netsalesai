@@ -3,7 +3,8 @@ import { useApp } from "@/state/AppStore";
 import { useModals } from "@/components/modals/ModalsProvider";
 import { CATEGORY_META } from "@/lib/scoring";
 import { formatCurrencyShort, formatPct } from "@/lib/format";
-import { Mail, ClipboardList, Phone, GripVertical } from "lucide-react";
+import { Mail, ClipboardList, Phone, GripVertical, ArrowDown } from "lucide-react";
+import { SourceBadge } from "@/components/common/SourceBadge";
 
 export function SwimlaneCard({
   account,
@@ -30,6 +31,19 @@ export function SwimlaneCard({
       <div className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100">
         <GripVertical className="h-3 w-3 text-muted-foreground" />
       </div>
+
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          modals.openDeprioritize(account);
+        }}
+        className="absolute right-1 top-1 z-10 hidden h-6 w-6 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground group-hover:flex"
+        aria-label="Deprioritize"
+        title="Deprioritize"
+      >
+        <ArrowDown className="h-3 w-3" />
+      </button>
+
       <div className="flex items-start justify-between gap-2 pl-3">
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium leading-tight">{account.accountName}</div>
@@ -53,16 +67,19 @@ export function SwimlaneCard({
         <span>{formatCurrencyShort(account.itBudgetUSD)}</span>
       </div>
 
-      <div className="mt-1.5 flex items-center justify-between pl-3">
-        <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums"
-          style={{
-            backgroundColor: urgent ? "var(--hot-bg)" : "var(--surface-2)",
-            color: urgent ? "var(--hot)" : "var(--muted-foreground)",
-          }}
-        >
-          {account.contractRenewalDays}d to renewal
-        </span>
+      <div className="mt-1.5 flex items-center justify-between gap-1 pl-3">
+        <div className="flex items-center gap-1">
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-medium tabular-nums"
+            style={{
+              backgroundColor: urgent ? "var(--hot-bg)" : "var(--surface-2)",
+              color: urgent ? "var(--hot)" : "var(--muted-foreground)",
+            }}
+          >
+            {account.contractRenewalDays}d
+          </span>
+          <SourceBadge source={account.dataSource} size="xs" />
+        </div>
         {overridden && (
           <span
             className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide"

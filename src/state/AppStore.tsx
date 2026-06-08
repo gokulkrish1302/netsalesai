@@ -391,11 +391,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const addCallLog = useCallback((log: CallLog) => dispatch({ type: "ADD_CALL_LOG", log }), []);
   const addImportedAccounts = useCallback(
-    (accounts: Account[]) => dispatch({ type: "ADD_IMPORTED", accounts }),
+    (accounts: Account[], filename?: string) =>
+      dispatch({ type: "ADD_IMPORTED", accounts, filename }),
     [],
   );
   const removeImportedAccount = useCallback(
     (id: string) => dispatch({ type: "REMOVE_IMPORTED", id }),
+    [],
+  );
+  const removeImportRecord = useCallback(
+    (recordId: string) => dispatch({ type: "REMOVE_IMPORT_RECORD", recordId }),
     [],
   );
   const deprioritize = useCallback(

@@ -35,6 +35,14 @@ interface DeprioritizeEntry {
   at: string;
 }
 
+export interface ImportRecord {
+  id: string;
+  filename: string;
+  importedAt: string;
+  count: number;
+  accountIds: string[];
+}
+
 interface AppState {
   weights: Weights;
   pipelineStages: Record<string, PipelineStage>;
@@ -42,6 +50,7 @@ interface AppState {
   notes: Record<string, { id: string; text: string; createdAt: string }[]>;
   callLogs: Record<string, CallLog[]>;
   importedAccounts: Account[];
+  importHistory: ImportRecord[];
   deprioritized: Record<string, DeprioritizeEntry>;
   actionPlans: Record<string, ActionPlanEntry>;
   activeAccountId: string | null;
@@ -53,8 +62,9 @@ type Action =
   | { type: "SET_STAGE"; accountId: string; stage: PipelineStage }
   | { type: "ADD_NOTE"; accountId: string; text: string }
   | { type: "ADD_CALL_LOG"; log: CallLog }
-  | { type: "ADD_IMPORTED"; accounts: Account[] }
+  | { type: "ADD_IMPORTED"; accounts: Account[]; filename?: string }
   | { type: "REMOVE_IMPORTED"; id: string }
+  | { type: "REMOVE_IMPORT_RECORD"; recordId: string }
   | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
   | { type: "UNDO_DEPRIORITIZE"; accountId: string }
   | { type: "CREATE_PLAN"; accountId: string; urgency: Urgency }

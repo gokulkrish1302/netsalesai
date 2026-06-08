@@ -1,7 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
 import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
-import type { Account, CallLog, PipelineStage, ScoredAccount, StageHistoryEntry, Weights } from "@/lib/types";
+import type { Account, CallLog, Category, PipelineStage, ScoredAccount, StageHistoryEntry, Weights } from "@/lib/types";
+
+interface DeprioritizeEntry {
+  category: Category;
+  reason: string;
+  previousCategory: Category;
+  rationale: string;
+  at: string;
+}
 
 interface AppState {
   weights: Weights;
@@ -10,6 +18,7 @@ interface AppState {
   notes: Record<string, { id: string; text: string; createdAt: string }[]>;
   callLogs: Record<string, CallLog[]>;
   importedAccounts: Account[];
+  deprioritized: Record<string, DeprioritizeEntry>;
   activeAccountId: string | null;
 }
 
@@ -21,15 +30,23 @@ type Action =
   | { type: "ADD_CALL_LOG"; log: CallLog }
   | { type: "ADD_IMPORTED"; accounts: Account[] }
   | { type: "REMOVE_IMPORTED"; id: string }
+  | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
+  | { type: "UNDO_DEPRIORITIZE"; accountId: string }
   | { type: "OPEN_ACCOUNT"; accountId: string | null };
 
-const LS_KEY = "netapp-cma-state-v2";
-const LS_LEGACY = "netapp-cma-state-v1";
+const LS_KEY = "netapp-cma-state-v3";
+const LS_LEGACY_KEYS = ["netapp-cma-state-v2", "netapp-cma-state-v1"];
 
 function loadPersisted(): Partial<AppState> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(LS_KEY) ?? localStorage.getItem(LS_LEGACY);
+    let raw = localStorage.getItem(LS_KEY);
+    if (!raw) {
+      for (const k of LS_LEGACY_KEYS) {
+        raw = localStorage.getItem(k);
+        if (raw) break;
+      }
+    }
     if (!raw) return {};
     return JSON.parse(raw);
   } catch {
@@ -51,6 +68,7 @@ function initial(): AppState {
     notes: persisted.notes ?? {},
     callLogs: persisted.callLogs ?? {},
     importedAccounts: imported,
+    deprioritized: persisted.deprioritized ?? {},
     activeAccountId: null,
   };
 }
@@ -114,6 +132,16 @@ function reducer(state: AppState, action: Action): AppState {
         importedAccounts: state.importedAccounts.filter((a) => a.id !== action.id),
       };
     }
+    case "DEPRIORITIZE":
+      return {
+        ...state,
+        deprioritized: { ...state.deprioritized, [action.accountId]: action.entry },
+      };
+    case "UNDO_DEPRIORITIZE": {
+      const next = { ...state.deprioritized };
+      delete next[action.accountId];
+      return { ...state, deprioritized: next };
+    }
     case "OPEN_ACCOUNT":
       return { ...state, activeAccountId: action.accountId };
     default:
@@ -133,16 +161,25 @@ interface AppContextValue {
   addCallLog: (log: CallLog) => void;
   addImportedAccounts: (accounts: Account[]) => void;
   removeImportedAccount: (id: string) => void;
+  deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
+  undoDeprioritize: (accountId: string) => void;
   openAccount: (accountId: string | null) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
 
+// Deterministic "synced X minutes ago" timestamp for mock accounts based on id
+function mockSyncedAt(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  const minutesAgo = (h % 240) + 5; // 5–245 minutes
+  return new Date(Date.now() - minutesAgo * 60_000).toISOString();
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initial);
   const [previousWeights, setPreviousWeights] = useState<Weights>(state.weights);
 
-  // Persist
   useEffect(() => {
     if (typeof window === "undefined") return;
     const snapshot = {
@@ -152,15 +189,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       notes: state.notes,
       callLogs: state.callLogs,
       importedAccounts: state.importedAccounts,
+      deprioritized: state.deprioritized,
     };
     localStorage.setItem(LS_KEY, JSON.stringify(snapshot));
-  }, [state.weights, state.pipelineStages, state.stageHistory, state.notes, state.callLogs, state.importedAccounts]);
+  }, [
+    state.weights,
+    state.pipelineStages,
+    state.stageHistory,
+    state.notes,
+    state.callLogs,
+    state.importedAccounts,
+    state.deprioritized,
+  ]);
 
   const accountsWithStages: Account[] = useMemo(
     () =>
       [...MOCK_ACCOUNTS, ...state.importedAccounts].map((a) => ({
         ...a,
         pipelineStage: state.pipelineStages[a.id] ?? a.pipelineStage,
+        dataSource: a.dataSource ?? "active_iq",
+        sourceTimestamp: a.sourceTimestamp ?? mockSyncedAt(a.id),
       })),
     [state.pipelineStages, state.importedAccounts],
   );
@@ -170,10 +218,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [accountsWithStages, previousWeights],
   );
 
-  const scoredAccounts = useMemo(
-    () => scoreAll(accountsWithStages, state.weights, Object.fromEntries(previousScoredAccounts.map((p) => [p.id, p.score]))),
-    [accountsWithStages, state.weights, previousScoredAccounts],
-  );
+  const scoredAccounts = useMemo(() => {
+    const base = scoreAll(
+      accountsWithStages,
+      state.weights,
+      Object.fromEntries(previousScoredAccounts.map((p) => [p.id, p.score])),
+    );
+    // Apply deprioritize category overrides
+    return base.map((a) => {
+      const dp = state.deprioritized[a.id];
+      return dp ? { ...a, category: dp.category } : a;
+    });
+  }, [accountsWithStages, state.weights, previousScoredAccounts, state.deprioritized]);
 
   const activeAccount = useMemo(
     () => scoredAccounts.find((a) => a.id === state.activeAccountId) ?? null,
@@ -186,8 +242,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
   const resetWeights = useCallback(() => dispatch({ type: "RESET_WEIGHTS" }), []);
   const setStage = useCallback(
-    (accountId: string, stage: PipelineStage) =>
-      dispatch({ type: "SET_STAGE", accountId, stage }),
+    (accountId: string, stage: PipelineStage) => dispatch({ type: "SET_STAGE", accountId, stage }),
     [],
   );
   const addNote = useCallback(
@@ -201,6 +256,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const removeImportedAccount = useCallback(
     (id: string) => dispatch({ type: "REMOVE_IMPORTED", id }),
+    [],
+  );
+  const deprioritize = useCallback(
+    (accountId: string, entry: DeprioritizeEntry) =>
+      dispatch({ type: "DEPRIORITIZE", accountId, entry }),
+    [],
+  );
+  const undoDeprioritize = useCallback(
+    (accountId: string) => dispatch({ type: "UNDO_DEPRIORITIZE", accountId }),
     [],
   );
   const openAccount = useCallback(
@@ -225,6 +289,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCallLog,
     addImportedAccounts,
     removeImportedAccount,
+    deprioritize,
+    undoDeprioritize,
     openAccount,
   };
 

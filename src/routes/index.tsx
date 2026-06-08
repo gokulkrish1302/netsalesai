@@ -4,6 +4,7 @@ import { PriorityMatrix } from "@/components/dashboard/PriorityMatrix";
 import { TopPriorityCard } from "@/components/dashboard/TopPriorityCard";
 import { RenewalRadar } from "@/components/dashboard/RenewalRadar";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
+import { useAuth } from "@/state/AuthContext";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -20,11 +21,14 @@ export const Route = createFileRoute("/")({
 });
 
 function Dashboard() {
+  const { rep, user } = useAuth();
+  const source = rep?.name || user?.email?.split("@")[0] || "there";
+  const firstName = source.split(/[\s.]+/)[0].replace(/^./, (c) => c.toUpperCase());
   return (
     <div className="space-y-6">
       <div>
         <h1 className="display text-[28px] leading-tight md:text-[32px]">
-          Good day, Chris
+          Good day, {firstName}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Here's where your portfolio stands today.

@@ -48,9 +48,25 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const { rep, user } = useAuth();
   const { scoredAccounts } = useApp();
-  const { active } = useDashboards();
+  const { active, updateLayout } = useDashboards();
   const layout = active?.layout ?? DEFAULT_LAYOUT;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active: a, over } = event;
+    if (!over || a.id === over.id || !active) return;
+    const ids = layout.widgets.map((w) => w.key);
+    const oldIndex = ids.indexOf(a.id as WidgetKey);
+    const newIndex = ids.indexOf(over.id as WidgetKey);
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(layout.widgets, oldIndex, newIndex);
+    void updateLayout({ ...layout, widgets: next });
+  };
 
   const filtered: ScoredAccount[] = useMemo(() => {
     const f = layout.filters;

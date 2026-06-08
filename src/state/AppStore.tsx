@@ -88,7 +88,7 @@ function initial(): AppState {
   const persisted = loadPersisted();
   const pipelineStages: Record<string, PipelineStage> = { ...persisted.pipelineStages };
   const imported = persisted.importedAccounts ?? [];
-  for (const a of imported) {
+  for (const a of [...MOCK_ACCOUNTS, ...imported]) {
     if (!pipelineStages[a.id]) pipelineStages[a.id] = a.pipelineStage;
   }
   return {

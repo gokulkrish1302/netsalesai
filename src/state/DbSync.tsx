@@ -46,7 +46,7 @@ function rowToAccount(row: {
  * - Mirrors call logs / notes into the `activity` table.
  */
 export function DbSync() {
-  const { rep } = useAuth();
+  const { rep, isAdmin } = useAuth();
   const {
     state,
     scoredAccounts,
@@ -57,19 +57,20 @@ export function DbSync() {
   const initialWeightsLoaded = useRef(false);
   const loadedForEmail = useRef<string | null>(null);
 
-  // Load DB accounts + weights once per rep
+  // Load DB accounts + weights once per rep (admins load every rep's accounts)
   useEffect(() => {
     if (!rep) return;
-    if (loadedForEmail.current === rep.email) return;
-    loadedForEmail.current = rep.email;
+    const key = `${rep.email}|${isAdmin ? "admin" : "rep"}`;
+    if (loadedForEmail.current === key) return;
+    loadedForEmail.current = key;
     initialWeightsLoaded.current = false;
 
     (async () => {
+      const acctsQuery = supabase
+        .from("accounts")
+        .select("id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email");
       const [{ data: accts }, { data: w }] = await Promise.all([
-        supabase
-          .from("accounts")
-          .select("id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email")
-          .eq("rep_email", rep.email),
+        isAdmin ? acctsQuery : acctsQuery.eq("rep_email", rep.email),
         supabase
           .from("rep_weights")
           .select("weights")
@@ -89,7 +90,7 @@ export function DbSync() {
       }
       initialWeightsLoaded.current = true;
     })();
-  }, [rep, addImportedAccounts, setWeights, state.weights]);
+  }, [rep, isAdmin, addImportedAccounts, setWeights, state.weights]);
 
   // Persist weights on change (debounced)
   useEffect(() => {

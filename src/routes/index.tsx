@@ -184,9 +184,26 @@ function Dashboard() {
         <DashboardBar />
       </div>
 
-      {layout.widgets
-        .filter((w) => w.visible)
-        .map((w) => renderWidget(w.key))}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext
+          items={layout.widgets.filter((w) => w.visible).map((w) => w.key)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-6">
+            {layout.widgets
+              .filter((w) => w.visible)
+              .map((w) => {
+                const node = renderWidget(w.key);
+                if (!node) return null;
+                return (
+                  <SortableWidget key={w.key} id={w.key}>
+                    {node}
+                  </SortableWidget>
+                );
+              })}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 }

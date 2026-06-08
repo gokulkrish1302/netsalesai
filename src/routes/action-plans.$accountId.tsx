@@ -39,7 +39,7 @@ import {
 } from "@/lib/actionPlans";
 import { buildActionPlan } from "@/lib/actionPlans";
 import { formatCurrencyShort, formatDate } from "@/lib/format";
-import type { ActionPlanStatus } from "@/lib/types";
+import type { ActionPlanStatus, ScoredAccount, Urgency } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -78,6 +78,12 @@ interface SharedFile { id: string; name: string; url: string }
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+}
+
+function defaultUrgency(account: ScoredAccount): Urgency {
+  if (account.category === "HOT" || account.contractRenewalDays <= 30) return "this_week";
+  if (account.category === "WARM" || account.contractRenewalDays <= 90) return "this_month";
+  return "this_quarter";
 }
 
 function ActionPlanDetail() {

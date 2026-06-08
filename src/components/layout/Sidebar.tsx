@@ -1,10 +1,10 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings, Target } from "lucide-react";
+import { LayoutDashboard, ClipboardList, Trophy, Bell, Settings, Target, Upload } from "lucide-react";
 import { useApp } from "@/state/AppStore";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
-  to: "/" | "/accounts" | "/leaderboard" | "/action-plans" | "/renewals" | "/settings";
+  to: "/" | "/accounts" | "/leaderboard" | "/action-plans" | "/renewals" | "/imports" | "/settings";
   label: string;
   icon: typeof LayoutDashboard;
   exact?: boolean;
@@ -17,6 +17,7 @@ const items: NavItem[] = [
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy },
   { to: "/action-plans", label: "Action Plans", icon: Target, badge: "plans" },
   { to: "/renewals", label: "Renewals", icon: Bell, badge: "renewals" },
+  { to: "/imports", label: "Imports", icon: Upload },
   { to: "/settings", label: "Settings", icon: Settings },
 ];
 

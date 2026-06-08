@@ -8,14 +8,10 @@ import { useApp } from "@/state/AppStore";
 import { ScoreGauge } from "@/components/common/ScoreGauge";
 import { CategoryPill } from "@/components/common/CategoryPill";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Mail, ClipboardList, Phone, FileDown, AlertOctagon, RefreshCw, Upload } from "lucide-react";
+import { AlertOctagon, RefreshCw, Upload, ArrowRight } from "lucide-react";
 import { useModals } from "@/components/modals/ModalsProvider";
-import { useState } from "react";
-import { toast } from "sonner";
 import { CATEGORY_META } from "@/lib/scoring";
-import { formatCurrencyShort, formatPct, formatDate, STAGE_LABEL, STAGE_ORDER } from "@/lib/format";
-import type { PipelineStage } from "@/lib/types";
+import { formatCurrencyShort, formatPct } from "@/lib/format";
 import {
   Radar,
   RadarChart,

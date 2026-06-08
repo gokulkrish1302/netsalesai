@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { ScorePill } from "@/components/common/ScoreBadge";
 import { useAuth } from "@/state/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
-import { ShieldCheck } from "lucide-react";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Sliders, BarChart3, Users } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -44,7 +45,6 @@ function SettingsPage() {
 
     const next: Weights = { ...current, [key]: clamped };
     if (otherSum === 0) {
-      // distribute equally
       const each = Math.floor(remaining / others.length);
       others.forEach((k) => (next[k] = each));
       next[others[0]] += remaining - each * others.length;
@@ -80,71 +80,139 @@ function SettingsPage() {
   const total = Object.values(state.weights).reduce((s, v) => s + v, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Customize Scoring Weights</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Adjust to match your territory priorities. Weights auto-normalize to always total 100.
+          Manage your scoring weights, preview impact{isAdmin ? ", and administer your team" : ""}.
         </p>
       </div>
 
-      <div className="app-card p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="text-xs text-muted-foreground">
-            Total: <span className="font-semibold text-foreground tabular-nums">{total}</span> / 100
-          </div>
-          <Button variant="outline" size="sm" onClick={() => {
-            resetWeights();
-            toast.success("Weights reset to default");
-          }}>
-            Reset to Default
-          </Button>
-        </div>
-        <div className="space-y-6">
-          {FIELDS.map((f) => (
-            <div key={f.key}>
-              <div className="mb-2 flex items-baseline justify-between">
-                <div>
-                  <div className="text-sm font-semibold">
-                    {f.label} — <span style={{ color: "var(--primary)" }}>{state.weights[f.key]}%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">{f.description}</p>
-                </div>
-                <div className="text-[10px] uppercase text-muted-foreground">
-                  Default: {DEFAULT_WEIGHTS[f.key]}%
-                </div>
+      <Accordion
+        type="multiple"
+        defaultValue={["weights"]}
+        className="space-y-3"
+      >
+        <AccordionItem
+          value="weights"
+          className="app-card border-0 px-5"
+        >
+          <AccordionTrigger className="py-4 hover:no-underline">
+            <SectionHeader
+              icon={<Sliders className="h-4 w-4" />}
+              title="Scoring weights"
+              description="Tune how much each signal contributes to an account's score."
+            />
+          </AccordionTrigger>
+          <AccordionContent className="pb-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-xs text-muted-foreground">
+                Total: <span className="font-semibold text-foreground tabular-nums">{total}</span> / 100
               </div>
-              <Slider
-                value={[state.weights[f.key]]}
-                min={0}
-                max={60}
-                step={1}
-                onValueChange={(v) => update(f.key, v[0])}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  resetWeights();
+                  toast.success("Weights reset to default");
+                }}
+              >
+                Reset to Default
+              </Button>
+            </div>
+            <div className="space-y-6">
+              {FIELDS.map((f) => (
+                <div key={f.key}>
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">
+                        {f.label} — <span style={{ color: "var(--primary)" }}>{state.weights[f.key]}%</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{f.description}</p>
+                    </div>
+                    <div className="text-[10px] uppercase text-muted-foreground">
+                      Default: {DEFAULT_WEIGHTS[f.key]}%
+                    </div>
+                  </div>
+                  <Slider
+                    value={[state.weights[f.key]]}
+                    min={0}
+                    max={60}
+                    step={1}
+                    onValueChange={(v) => update(f.key, v[0])}
+                  />
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="preview" className="app-card border-0 px-5">
+          <AccordionTrigger className="py-4 hover:no-underline">
+            <SectionHeader
+              icon={<BarChart3 className="h-4 w-4" />}
+              title="Top 5 impact preview"
+              description="See how your weight changes shift the leaderboard."
+            />
+          </AccordionTrigger>
+          <AccordionContent className="pb-5">
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <Top5Card title="Before" items={top5Before} />
+              <Top5Card title="After" items={top5Now} />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {isAdmin && (
+          <AccordionItem value="team" className="app-card border-0 px-5">
+            <AccordionTrigger className="py-4 hover:no-underline">
+              <SectionHeader
+                icon={<Users className="h-4 w-4" />}
+                title="Team management"
+                description="Add, remove, and grant admin access to sales reps."
+                badge="Admin"
               />
-            </div>
-          ))}
-        </div>
-      </div>
+            </AccordionTrigger>
+            <AccordionContent className="pb-5">
+              <TeamManagement />
+            </AccordionContent>
+          </AccordionItem>
+        )}
+      </Accordion>
+    </div>
+  );
+}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-        <Top5Card title="Before" items={top5Before} />
-        <Top5Card title="After" items={top5Now} />
+function SectionHeader({
+  icon,
+  title,
+  description,
+  badge,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  badge?: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 text-left">
+      <div
+        className="flex h-9 w-9 items-center justify-center rounded-lg"
+        style={{ backgroundColor: "color-mix(in oklab, var(--primary) 12%, transparent)", color: "var(--primary)" }}
+      >
+        {icon}
       </div>
-
-      {isAdmin && (
-        <div className="space-y-4 pt-6">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <div>
-              <h2 className="text-xl font-bold tracking-tight">Team management</h2>
-              <p className="text-sm text-muted-foreground">
-                Add, remove, and grant admin access to sales reps.
-              </p>
-            </div>
-          </div>
-          <TeamManagement />
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{title}</span>
+          {badge && (
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary">
+              {badge}
+            </span>
+          )}
         </div>
-      )}
+        <p className="text-xs font-normal text-muted-foreground">{description}</p>
+      </div>
     </div>
   );
 }
@@ -157,7 +225,7 @@ function Top5Card({
   items: { id: string; accountName: string; score: number; category: import("@/lib/types").Category }[];
 }) {
   return (
-    <div className="app-card p-5">
+    <div className="rounded-xl border bg-background/40 p-5">
       <h3 className="mb-3 text-sm font-semibold">Top 5 — {title}</h3>
       <ol className="space-y-2">
         {items.map((a, i) => (

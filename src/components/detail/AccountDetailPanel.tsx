@@ -311,7 +311,6 @@ function cloudLabel(s: string) {
         : "None";
 }
 
-function DataSourceCard({ a }: { a: never }): never;
 function DataSourceCard({ account }: { account: import("@/lib/types").ScoredAccount }) {
   const isIQ = (account.dataSource ?? "active_iq") === "active_iq";
   const ts = account.sourceTimestamp ? new Date(account.sourceTimestamp) : null;

@@ -30,6 +30,9 @@ const BREAKDOWN_LABELS: Record<string, { label: string; short: string; max: numb
   renewal: { label: "Renewal Urgency", short: "Renewal", max: 5 },
 };
 
+const KEYS = ["deviceAge", "utilization", "budget", "cloud", "industry", "renewal"] as const;
+
+
 export function AccountDetailPanel() {
   const { activeAccount, openAccount } = useApp();
   const { startCreatePlan } = useModals();

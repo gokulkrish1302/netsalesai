@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
-import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
+// MOCK_ACCOUNTS removed — app starts empty; data comes from Import.
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
 import type {
   Account,
@@ -88,7 +88,7 @@ function initial(): AppState {
   const persisted = loadPersisted();
   const pipelineStages: Record<string, PipelineStage> = { ...persisted.pipelineStages };
   const imported = persisted.importedAccounts ?? [];
-  for (const a of [...MOCK_ACCOUNTS, ...imported]) {
+  for (const a of imported) {
     if (!pipelineStages[a.id]) pipelineStages[a.id] = a.pipelineStage;
   }
   return {
@@ -309,7 +309,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const accountsWithStages: Account[] = useMemo(
     () =>
-      [...MOCK_ACCOUNTS, ...state.importedAccounts].map((a) => ({
+      state.importedAccounts.map((a) => ({
         ...a,
         pipelineStage: state.pipelineStages[a.id] ?? a.pipelineStage,
         dataSource: a.dataSource ?? "active_iq",

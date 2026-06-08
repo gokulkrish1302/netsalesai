@@ -149,6 +149,12 @@ export function AccountDetailPanel() {
                 </div>
               </section>
 
+              {/* Data source */}
+              <section>
+                <span className="label-eyebrow">Data Source</span>
+                <DataSourceCard account={a} />
+              </section>
+
               {/* Account intel grid */}
               <section>
                 <span className="label-eyebrow">Account Intel</span>
@@ -161,6 +167,7 @@ export function AccountDetailPanel() {
                   <IntelCell label="Annual Revenue" value={formatCurrencyShort(a.annualRevenue)} />
                 </div>
               </section>
+
 
               {/* Pipeline vertical timeline */}
               <section>
@@ -302,6 +309,58 @@ function cloudLabel(s: string) {
       : s === "licensed_not_deployed"
         ? "Licensed (not deployed)"
         : "None";
+}
+
+function DataSourceCard({ a }: { a: never }): never;
+function DataSourceCard({ account }: { account: import("@/lib/types").ScoredAccount }) {
+  const isIQ = (account.dataSource ?? "active_iq") === "active_iq";
+  const ts = account.sourceTimestamp ? new Date(account.sourceTimestamp) : null;
+  const tsLabel = ts ? ts.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
+  const confidence = isIQ ? "High" : "Partial";
+  const confColor = isIQ ? "var(--success)" : "var(--warm)";
+  const missing = account.missingFields ?? [];
+
+  return (
+    <div className="mt-2 rounded-2xl bg-surface-1 p-3 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <SourceBadgeInline isIQ={isIQ} />
+        <span className="text-muted-foreground">
+          {isIQ ? "Last synced" : "Uploaded"} <span className="font-semibold text-foreground">{tsLabel}</span>
+        </span>
+      </div>
+      <div className="mt-2 flex items-center gap-2">
+        <span className="text-muted-foreground">Score confidence:</span>
+        <span className="font-semibold" style={{ color: confColor }}>{confidence}</span>
+      </div>
+      {!isIQ && missing.length > 0 && (
+        <div className="mt-3 rounded-xl p-2" style={{ backgroundColor: "var(--warm-bg)" }}>
+          <div className="font-semibold" style={{ color: "var(--warm)" }}>
+            {missing.length} field{missing.length === 1 ? "" : "s"} missing
+          </div>
+          <div className="mt-1 text-foreground/80">{missing.join(", ")}</div>
+          <div className="mt-1 text-muted-foreground">Fill these in to improve score accuracy.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SourceBadgeInline({ isIQ }: { isIQ: boolean }) {
+  const Icon = isIQ ? (require("lucide-react").RefreshCw as typeof import("lucide-react").RefreshCw) : (require("lucide-react").Upload as typeof import("lucide-react").Upload);
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      style={{
+        backgroundColor: isIQ
+          ? "color-mix(in oklab, var(--primary) 12%, transparent)"
+          : "color-mix(in oklab, var(--success) 14%, transparent)",
+        color: isIQ ? "var(--on-primary-container)" : "var(--success)",
+      }}
+    >
+      <Icon className="h-3 w-3" />
+      {isIQ ? "Active IQ" : "Excel Import"}
+    </span>
+  );
 }
 
 void CATEGORY_META;

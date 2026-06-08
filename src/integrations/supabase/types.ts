@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      accounts: {
+        Row: {
+          account_name: string
+          created_at: string
+          device_age: number | null
+          id: string
+          it_budget: number | null
+          priority_badge: string | null
+          renewal_days: number | null
+          rep_email: string
+          score: number | null
+          status: string | null
+          storage_utilization: number | null
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          created_at?: string
+          device_age?: number | null
+          id?: string
+          it_budget?: number | null
+          priority_badge?: string | null
+          renewal_days?: number | null
+          rep_email: string
+          score?: number | null
+          status?: string | null
+          storage_utilization?: number | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          created_at?: string
+          device_age?: number | null
+          id?: string
+          it_budget?: number | null
+          priority_badge?: string | null
+          renewal_days?: number | null
+          rep_email?: string
+          score?: number | null
+          status?: string | null
+          storage_utilization?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      activity: {
+        Row: {
+          account_name: string
+          action_taken: string
+          created_at: string
+          date: string
+          id: string
+          notes: string | null
+          rep_email: string
+        }
+        Insert: {
+          account_name: string
+          action_taken: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          rep_email: string
+        }
+        Update: {
+          account_name?: string
+          action_taken?: string
+          created_at?: string
+          date?: string
+          id?: string
+          notes?: string | null
+          rep_email?: string
+        }
+        Relationships: []
+      }
+      rep_weights: {
+        Row: {
+          rep_email: string
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          rep_email: string
+          updated_at?: string
+          weights: Json
+        }
+        Update: {
+          rep_email?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: []
+      }
+      reps: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          region: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          name: string
+          region: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          region?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

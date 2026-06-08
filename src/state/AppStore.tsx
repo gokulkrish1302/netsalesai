@@ -339,6 +339,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.importedAccounts,
     state.deprioritized,
     state.actionPlans,
+    state.importHistory,
   ]);
 
   const accountsWithStages: Account[] = useMemo(

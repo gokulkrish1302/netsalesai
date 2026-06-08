@@ -463,6 +463,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     addCallLog,
     addImportedAccounts,
     removeImportedAccount,
+    removeImportRecord,
     deprioritize,
     undoDeprioritize,
     createPlan,

@@ -132,6 +132,27 @@ export function AccountDetailPanel() {
                 </div>
               </section>
 
+              {/* Current Infrastructure (from Active IQ) */}
+              {(a.netappModels?.length || a.ontapVersion || a.clusterCount != null) && (
+                <section>
+                  <div className="flex items-center justify-between">
+                    <span className="label-eyebrow">Current Infrastructure</span>
+                    {a.ontapVersion && <OntapBadge version={a.ontapVersion} />}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                    <IntelCell label="Models" value={a.netappModels?.join(", ") || "—"} />
+                    <IntelCell label="ONTAP Version" value={a.ontapVersion ?? "—"} />
+                    <IntelCell label="Clusters" value={String(a.clusterCount ?? "—")} />
+                    <IntelCell label="Architecture" value={a.storageArchitecture ?? "—"} />
+                    <IntelCell label="Cloud Connectivity" value={cloudLabel(a.cloudStatus)} />
+                    <IntelCell
+                      label="Risks (H / M)"
+                      value={`${a.riskCountHigh ?? 0} / ${a.riskCountMedium ?? 0}`}
+                    />
+                  </div>
+                </section>
+              )}
+
               {/* Data source */}
               <section>
                 <span className="label-eyebrow">Data Source</span>

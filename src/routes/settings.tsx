@@ -148,6 +148,19 @@ function SettingsPage() {
           </AccordionContent>
         </AccordionItem>
 
+        <AccordionItem value="active-iq" className="app-card border-0 px-5">
+          <AccordionTrigger className="py-4 hover:no-underline">
+            <SectionHeader
+              icon={<RefreshCw className="h-4 w-4" />}
+              title="Active IQ sync"
+              description="Pull live accounts, systems, and risks from NetApp Active IQ."
+            />
+          </AccordionTrigger>
+          <AccordionContent className="pb-5">
+            <ActiveIqSync />
+          </AccordionContent>
+        </AccordionItem>
+
         <AccordionItem value="preview" className="app-card border-0 px-5">
           <AccordionTrigger className="py-4 hover:no-underline">
             <SectionHeader

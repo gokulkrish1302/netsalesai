@@ -11,6 +11,7 @@ import { TopAccountsBar } from "@/components/dashboard/TopAccountsBar";
 import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
 import { ContextPreview } from "@/components/dashboard/ContextPreview";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
+import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";
@@ -183,6 +184,8 @@ function Dashboard() {
         </div>
         <DashboardBar />
       </div>
+
+      <MorningBriefing />
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext

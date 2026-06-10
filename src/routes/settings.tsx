@@ -10,7 +10,8 @@ import { ScorePill } from "@/components/common/ScoreBadge";
 import { useAuth } from "@/state/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sliders, BarChart3, Users } from "lucide-react";
+import { Sliders, BarChart3, Users, RefreshCw } from "lucide-react";
+import { ActiveIqSync } from "@/components/settings/ActiveIqSync";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -144,6 +145,19 @@ function SettingsPage() {
                 </div>
               ))}
             </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="active-iq" className="app-card border-0 px-5">
+          <AccordionTrigger className="py-4 hover:no-underline">
+            <SectionHeader
+              icon={<RefreshCw className="h-4 w-4" />}
+              title="Active IQ sync"
+              description="Pull live accounts, systems, and risks from NetApp Active IQ."
+            />
+          </AccordionTrigger>
+          <AccordionContent className="pb-5">
+            <ActiveIqSync />
           </AccordionContent>
         </AccordionItem>
 

@@ -132,6 +132,27 @@ export function AccountDetailPanel() {
                 </div>
               </section>
 
+              {/* Current Infrastructure (from Active IQ) */}
+              {(a.netappModels?.length || a.ontapVersion || a.clusterCount != null) && (
+                <section>
+                  <div className="flex items-center justify-between">
+                    <span className="label-eyebrow">Current Infrastructure</span>
+                    {a.ontapVersion && <OntapBadge version={a.ontapVersion} />}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-3 text-xs">
+                    <IntelCell label="Models" value={a.netappModels?.join(", ") || "—"} />
+                    <IntelCell label="ONTAP Version" value={a.ontapVersion ?? "—"} />
+                    <IntelCell label="Clusters" value={String(a.clusterCount ?? "—")} />
+                    <IntelCell label="Architecture" value={a.storageArchitecture ?? "—"} />
+                    <IntelCell label="Cloud Connectivity" value={cloudLabel(a.cloudStatus)} />
+                    <IntelCell
+                      label="Risks (H / M)"
+                      value={`${a.riskCountHigh ?? 0} / ${a.riskCountMedium ?? 0}`}
+                    />
+                  </div>
+                </section>
+              )}
+
               {/* Data source */}
               <section>
                 <span className="label-eyebrow">Data Source</span>
@@ -167,6 +188,22 @@ export function AccountDetailPanel() {
   );
 }
 
+
+function OntapBadge({ version }: { version: string }) {
+  const m = version.match(/(\d+)\.(\d+)/);
+  const legacy = !m || parseInt(m[1], 10) < 9 || (parseInt(m[1], 10) === 9 && parseInt(m[2], 10) < 10);
+  const label = legacy ? "Legacy System" : "Migration Ready";
+  const color = legacy ? "var(--hot)" : "var(--success)";
+  const bg = legacy ? "var(--hot-bg)" : "color-mix(in oklab, var(--success) 14%, transparent)";
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      style={{ backgroundColor: bg, color }}
+    >
+      {label}
+    </span>
+  );
+}
 
 function IntelCell({ label, value }: { label: string; value: string }) {
   return (

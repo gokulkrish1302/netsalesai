@@ -38,6 +38,14 @@ export interface Account {
   dataSource?: DataSource;
   sourceTimestamp?: string;
   missingFields?: string[];
+  netappModels?: string[];
+  ontapVersion?: string;
+  clusterCount?: number;
+  storageArchitecture?: "Single Node" | "HA Pair" | "Cluster";
+  riskCountHigh?: number;
+  riskCountMedium?: number;
+  itBudgetEstimated?: boolean;
+  lastSyncedAt?: string;
 }
 
 export interface Weights {

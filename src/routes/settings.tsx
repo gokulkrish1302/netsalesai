@@ -10,7 +10,8 @@ import { ScorePill } from "@/components/common/ScoreBadge";
 import { useAuth } from "@/state/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sliders, BarChart3, Users } from "lucide-react";
+import { Sliders, BarChart3, Users, RefreshCw } from "lucide-react";
+import { ActiveIqSync } from "@/components/settings/ActiveIqSync";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({

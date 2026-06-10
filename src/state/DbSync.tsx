@@ -87,7 +87,7 @@ export function DbSync() {
     (async () => {
       const acctsQuery = supabase
         .from("accounts")
-        .select("id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email");
+        .select("id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email, cloud_status, data_source, last_synced_at, netapp_models, ontap_version, cluster_count, storage_architecture, risk_count_high, risk_count_medium, it_budget_estimated");
       const [{ data: accts }, { data: w }] = await Promise.all([
         isAdmin ? acctsQuery : acctsQuery.eq("rep_email", rep.email),
         supabase

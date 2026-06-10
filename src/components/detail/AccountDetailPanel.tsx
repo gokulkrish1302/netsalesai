@@ -189,6 +189,22 @@ export function AccountDetailPanel() {
 }
 
 
+function OntapBadge({ version }: { version: string }) {
+  const m = version.match(/(\d+)\.(\d+)/);
+  const legacy = !m || parseInt(m[1], 10) < 9 || (parseInt(m[1], 10) === 9 && parseInt(m[2], 10) < 10);
+  const label = legacy ? "Legacy System" : "Migration Ready";
+  const color = legacy ? "var(--hot)" : "var(--success)";
+  const bg = legacy ? "var(--hot-bg)" : "color-mix(in oklab, var(--success) 14%, transparent)";
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+      style={{ backgroundColor: bg, color }}
+    >
+      {label}
+    </span>
+  );
+}
+
 function IntelCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-secondary p-2">

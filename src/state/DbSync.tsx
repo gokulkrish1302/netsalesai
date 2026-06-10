@@ -15,7 +15,18 @@ function rowToAccount(row: {
   renewal_days: number | null;
   status: string | null;
   rep_email: string;
+  cloud_status?: string | null;
+  data_source?: string | null;
+  last_synced_at?: string | null;
+  netapp_models?: string[] | null;
+  ontap_version?: string | null;
+  cluster_count?: number | null;
+  storage_architecture?: string | null;
+  risk_count_high?: number | null;
+  risk_count_medium?: number | null;
+  it_budget_estimated?: boolean | null;
 }): Account {
+  const cloud = (row.cloud_status as CloudStatus | null) ?? ("none" as CloudStatus);
   return {
     id: row.id,
     accountName: row.account_name,
@@ -23,19 +34,27 @@ function rowToAccount(row: {
     industry: "Tech" as Industry,
     region: "West" as Region,
     companySize: "—",
-    deviceModel: "—",
+    deviceModel: (row.netapp_models?.[0] ?? "—"),
     deviceAgeYears: Number(row.device_age ?? 0),
     endOfLife: Number(row.device_age ?? 0) >= 5,
     storageCapacityTB: 0,
     utilizationPct: Number(row.storage_utilization ?? 0),
     itBudgetUSD: Number(row.it_budget ?? 0),
-    cloudStatus: "none" as CloudStatus,
+    cloudStatus: cloud,
     contractRenewalDays: Number(row.renewal_days ?? 365),
     annualRevenue: 0,
     lastContactDate: null,
     pipelineStage: (row.status as PipelineStage) ?? "not_contacted",
-    dataSource: "active_iq",
-    sourceTimestamp: new Date().toISOString(),
+    dataSource: (row.data_source as "active_iq" | "excel_import" | null) ?? "active_iq",
+    sourceTimestamp: row.last_synced_at ?? new Date().toISOString(),
+    netappModels: row.netapp_models ?? undefined,
+    ontapVersion: row.ontap_version ?? undefined,
+    clusterCount: row.cluster_count ?? undefined,
+    storageArchitecture: (row.storage_architecture as Account["storageArchitecture"]) ?? undefined,
+    riskCountHigh: row.risk_count_high ?? undefined,
+    riskCountMedium: row.risk_count_medium ?? undefined,
+    itBudgetEstimated: row.it_budget_estimated ?? undefined,
+    lastSyncedAt: row.last_synced_at ?? undefined,
   };
 }
 

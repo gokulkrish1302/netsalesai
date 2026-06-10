@@ -57,7 +57,7 @@ export function Sidebar() {
               className="text-[15px] font-semibold tracking-tight text-foreground"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Cloud Compass
+              Sales Intelligence
             </span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               by NetApp

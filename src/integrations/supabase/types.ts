@@ -178,23 +178,32 @@ export type Database = {
       }
       reps: {
         Row: {
+          briefing_snapshot: Json | null
+          briefing_snapshot_at: string | null
           created_at: string
           email: string
           id: string
+          last_login_at: string | null
           name: string
           region: string
         }
         Insert: {
+          briefing_snapshot?: Json | null
+          briefing_snapshot_at?: string | null
           created_at?: string
           email: string
           id: string
+          last_login_at?: string | null
           name: string
           region: string
         }
         Update: {
+          briefing_snapshot?: Json | null
+          briefing_snapshot_at?: string | null
           created_at?: string
           email?: string
           id?: string
+          last_login_at?: string | null
           name?: string
           region?: string
         }

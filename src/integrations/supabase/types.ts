@@ -17,43 +17,82 @@ export type Database = {
       accounts: {
         Row: {
           account_name: string
+          cloud_status: string | null
+          cluster_count: number | null
           created_at: string
+          customer_id: string | null
+          data_source: string | null
           device_age: number | null
           id: string
+          industry: string | null
           it_budget: number | null
+          it_budget_estimated: boolean | null
+          last_synced_at: string | null
+          netapp_models: string[] | null
+          ontap_version: string | null
           priority_badge: string | null
+          region: string | null
           renewal_days: number | null
           rep_email: string
+          risk_count_high: number | null
+          risk_count_medium: number | null
           score: number | null
           status: string | null
+          storage_architecture: string | null
           storage_utilization: number | null
           updated_at: string
         }
         Insert: {
           account_name: string
+          cloud_status?: string | null
+          cluster_count?: number | null
           created_at?: string
+          customer_id?: string | null
+          data_source?: string | null
           device_age?: number | null
           id?: string
+          industry?: string | null
           it_budget?: number | null
+          it_budget_estimated?: boolean | null
+          last_synced_at?: string | null
+          netapp_models?: string[] | null
+          ontap_version?: string | null
           priority_badge?: string | null
+          region?: string | null
           renewal_days?: number | null
           rep_email: string
+          risk_count_high?: number | null
+          risk_count_medium?: number | null
           score?: number | null
           status?: string | null
+          storage_architecture?: string | null
           storage_utilization?: number | null
           updated_at?: string
         }
         Update: {
           account_name?: string
+          cloud_status?: string | null
+          cluster_count?: number | null
           created_at?: string
+          customer_id?: string | null
+          data_source?: string | null
           device_age?: number | null
           id?: string
+          industry?: string | null
           it_budget?: number | null
+          it_budget_estimated?: boolean | null
+          last_synced_at?: string | null
+          netapp_models?: string[] | null
+          ontap_version?: string | null
           priority_badge?: string | null
+          region?: string | null
           renewal_days?: number | null
           rep_email?: string
+          risk_count_high?: number | null
+          risk_count_medium?: number | null
           score?: number | null
           status?: string | null
+          storage_architecture?: string | null
           storage_utilization?: number | null
           updated_at?: string
         }
@@ -158,6 +197,36 @@ export type Database = {
           id?: string
           name?: string
           region?: string
+        }
+        Relationships: []
+      }
+      sync_runs: {
+        Row: {
+          account_count: number | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          rep_email: string
+          started_at: string
+          status: string
+        }
+        Insert: {
+          account_count?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          rep_email: string
+          started_at?: string
+          status: string
+        }
+        Update: {
+          account_count?: number | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          rep_email?: string
+          started_at?: string
+          status?: string
         }
         Relationships: []
       }

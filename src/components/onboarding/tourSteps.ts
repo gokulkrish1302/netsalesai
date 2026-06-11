@@ -16,7 +16,7 @@ export const tourSteps: DriveStep[] = [
     popover: {
       title: "Dashboard",
       description:
-        "Your daily command center — KPIs, priority matrix, renewals, and the morning briefing.",
+        "Your daily command center — KPIs, top priority accounts, renewals, and the morning briefing.",
       side: "right",
     },
   },
@@ -106,11 +106,11 @@ export const tourSteps: DriveStep[] = [
     },
   },
   {
-    element: '[data-tour="priority-matrix"]',
+    element: '[data-tour="ranked-list"]',
     popover: {
-      title: "Priority Matrix",
+      title: "Top Priority Accounts",
       description:
-        "Accounts plotted by score versus renewal urgency — the top-right quadrant is where to focus first.",
+        "Your top accounts ranked by composite score — start here every morning.",
       side: "right",
     },
   },

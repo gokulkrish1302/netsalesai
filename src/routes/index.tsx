@@ -12,6 +12,8 @@ import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
 import { ContextPreview } from "@/components/dashboard/ContextPreview";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
+import { EmptyAccountsState } from "@/components/common/EmptyAccountsState";
+import { useModals } from "@/components/modals/ModalsProvider";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";

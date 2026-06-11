@@ -70,17 +70,31 @@ export function VoiceAssistantButton() {
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return null;
     const en = voices.filter((v) => v.lang?.toLowerCase().startsWith("en"));
+    // Prefer Siri-like voices: Apple's "Samantha" / "Ava" / "Allison" are the closest match,
+    // then Microsoft's natural neural voices, then Google's premium voices.
     const preferred = [
-      "Google US English",
+      "Samantha",
+      "Ava (Premium)",
+      "Ava (Enhanced)",
+      "Ava",
+      "Allison",
+      "Allison (Enhanced)",
+      "Siri",
+      "Microsoft Ava Online (Natural) - English (United States)",
       "Microsoft Aria Online (Natural) - English (United States)",
       "Microsoft Jenny Online (Natural) - English (United States)",
-      "Samantha",
+      "Google US English",
     ];
     for (const name of preferred) {
       const match = en.find((v) => v.name === name);
       if (match) return match;
     }
-    return en.find((v) => /natural|neural|enhanced/i.test(v.name)) ?? en[0] ?? voices[0];
+    return (
+      en.find((v) => /samantha|ava|allison|siri/i.test(v.name)) ??
+      en.find((v) => /natural|neural|premium|enhanced/i.test(v.name)) ??
+      en[0] ??
+      voices[0]
+    );
   }
 
   function speak(text: string) {
@@ -89,8 +103,10 @@ export function VoiceAssistantButton() {
     const utter = new SpeechSynthesisUtterance(text);
     const voice = pickVoice();
     if (voice) utter.voice = voice;
-    utter.rate = 0.9;
-    utter.pitch = 1.0;
+    // Siri-like: slightly higher pitch, warm relaxed pace
+    utter.rate = 0.95;
+    utter.pitch = 1.15;
+    utter.volume = 1;
     utter.onend = () => setStatus("idle");
     utter.onerror = () => setStatus("idle");
     setStatus("speaking");

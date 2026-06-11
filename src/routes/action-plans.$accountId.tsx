@@ -77,8 +77,7 @@ const STAGE_LABEL: Record<ActionPlanStatus, string> = {
   lost: "Lost",
 };
 
-interface Stakeholder { id: string; name: string; role: string; email: string }
-interface SharedFile { id: string; name: string; url: string }
+import type { Stakeholder, SharedFile } from "@/lib/planExtras.functions";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();

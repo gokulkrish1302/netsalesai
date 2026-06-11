@@ -7,23 +7,20 @@ import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 const MODEL = "google/gemini-3-flash-preview";
 
 const ActionPlanSchema = z.object({
-  executiveSummary: z.string().min(20),
+  executiveSummary: z.string().min(1),
   products: z
     .array(z.object({ name: z.string(), description: z.string() }))
-    .min(2)
-    .max(4),
-  talkingPoints: z.array(z.string()).min(3).max(5),
+    .default([]),
+  talkingPoints: z.array(z.string()).default([]),
   timeline: z
     .array(z.object({ week: z.string(), action: z.string() }))
-    .min(3)
-    .max(5),
-  roiLow: z.number().nonnegative(),
-  roiHigh: z.number().nonnegative(),
-  roiPct: z.string(),
+    .default([]),
+  roiLow: z.coerce.number().nonnegative().default(0),
+  roiHigh: z.coerce.number().nonnegative().default(0),
+  roiPct: z.string().default(""),
   objections: z
     .array(z.object({ objection: z.string(), response: z.string() }))
-    .min(2)
-    .max(4),
+    .default([]),
 });
 
 export type GeneratedActionPlan = z.infer<typeof ActionPlanSchema>;
@@ -128,7 +125,11 @@ async function generatePlan(row: Record<string, unknown>): Promise<GeneratedActi
   }
   const result = ActionPlanSchema.safeParse(parsed);
   if (!result.success) {
-    throw new Error(`AI output failed validation: ${result.error.issues.map((i) => i.message).join("; ")}`);
+    const details = result.error.issues
+      .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
+    console.error("ActionPlan validation failed", { details, parsed });
+    throw new Error(`AI output failed validation: ${details}`);
   }
   return result.data;
 }

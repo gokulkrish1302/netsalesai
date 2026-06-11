@@ -645,11 +645,22 @@ function ActionPlanDetail() {
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="truncate text-sm font-medium">{f.name}</span>
                     </div>
-                    <Button size="sm" variant="ghost" asChild>
-                      <a href={f.url} target="_blank" rel="noreferrer">
-                        <LinkIcon className="mr-1 h-3.5 w-3.5" /> Open
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" asChild className="cursor-pointer">
+                        <a href={f.url} target="_blank" rel="noreferrer">
+                          <LinkIcon className="mr-1 h-3.5 w-3.5" /> Open
+                        </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer text-muted-foreground hover:text-[color:var(--hot)]"
+                        onClick={() => removeFile(f.id)}
+                        aria-label="Remove file"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>

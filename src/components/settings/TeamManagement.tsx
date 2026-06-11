@@ -109,7 +109,7 @@ export function TeamManagement() {
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="t-pwd">Temporary password</Label>
-            <Input id="t-pwd" type="text" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
+            <Input id="t-pwd" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" />
           </div>
           <div className="flex items-center gap-3 sm:col-span-2">
             <Switch id="t-admin" checked={makeAdmin} onCheckedChange={setMakeAdmin} />

@@ -71,13 +71,23 @@ export function ImportAccountsModal({
     toast.success("Template downloaded");
   }
 
-  function confirmImport() {
+  async function confirmImport() {
     if (!result?.accounts.length) return;
-    addImportedAccounts(result.accounts, filename ?? undefined);
-    toast.success(`Imported ${result.accounts.length} account${result.accounts.length === 1 ? "" : "s"}`);
-    onOpenChange(false);
-    setTimeout(reset, 300);
+    if (!rep) {
+      toast.error("Sign in required to save accounts");
+      return;
+    }
+    try {
+      const count = await saveImportedAccounts(rep.email, filename ?? "Untitled import", result.accounts);
+      toast.success(`Imported ${count} account${count === 1 ? "" : "s"}`);
+      onOpenChange(false);
+      setTimeout(reset, 300);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to save accounts: ${msg}`);
+    }
   }
+
 
   return (
     <Dialog

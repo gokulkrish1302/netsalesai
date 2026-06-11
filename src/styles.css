@@ -214,3 +214,67 @@
     background: white;
   }
 }
+
+/* ===== Onboarding tour (driver.js) theme ===== */
+.netapp-tour-popover.driver-popover {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.28);
+  font-family: inherit;
+  max-width: 340px;
+}
+.netapp-tour-popover .driver-popover-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+  margin-bottom: 6px;
+}
+.netapp-tour-popover .driver-popover-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.netapp-tour-popover .driver-popover-progress-text {
+  font-size: 11px;
+  color: var(--muted-foreground);
+  font-weight: 500;
+}
+.netapp-tour-popover .driver-popover-footer {
+  margin-top: 14px;
+  gap: 6px;
+}
+.netapp-tour-popover .driver-popover-navigation-btns {
+  gap: 6px;
+}
+.netapp-tour-popover .driver-popover-prev-btn,
+.netapp-tour-popover .driver-popover-next-btn,
+.netapp-tour-popover .driver-popover-close-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: none;
+  cursor: pointer;
+}
+.netapp-tour-popover .driver-popover-prev-btn {
+  background: transparent;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border);
+}
+.netapp-tour-popover .driver-popover-close-btn {
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 18px;
+  padding: 0 6px;
+}
+.driver-popover-arrow-side-right.driver-popover-arrow { border-right-color: var(--card); }
+.driver-popover-arrow-side-left.driver-popover-arrow { border-left-color: var(--card); }
+.driver-popover-arrow-side-top.driver-popover-arrow { border-top-color: var(--card); }
+.driver-popover-arrow-side-bottom.driver-popover-arrow { border-bottom-color: var(--card); }

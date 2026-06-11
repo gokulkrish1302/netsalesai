@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Volume2, VolumeX, X, Send, Trash2, MessageSquare } from "lucide-react";
+import { Mic, Loader2, Volume2, VolumeX, X, Send, Trash2, MessageSquare, Sparkles, AudioLines } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { askVoiceAssistant } from "@/lib/voiceAssistant.functions";

@@ -94,9 +94,10 @@ function ActionPlanDetail() {
   const navigate = useNavigate();
   const { state, scoredAccounts, createPlan, setPlanStatus, addPlanActivity, setPlanNextStep, removePlan } = useApp();
   const { openOutcome } = useModals();
+  const queryClient = useQueryClient();
   const [note, setNote] = useState("");
 
-  // Local sales-room state (lightweight, in-memory per session)
+  // Sales-room state — persisted in Supabase
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [shName, setShName] = useState("");
@@ -116,6 +117,9 @@ function ActionPlanDetail() {
 
   const getPlanFn = useServerFn(getOrGenerateActionPlan);
   const regenPlanFn = useServerFn(regenerateActionPlan);
+  const getExtrasFn = useServerFn(getPlanExtras);
+  const saveExtrasFn = useServerFn(savePlanExtras);
+
   const aiPlanQuery = useQuery({
     queryKey: ["action-plan", account?.id],
     queryFn: () => getPlanFn({ data: { accountId: account!.id } }),
@@ -123,6 +127,39 @@ function ActionPlanDetail() {
     staleTime: 5 * 60_000,
     retry: false,
   });
+
+  const extrasQuery = useQuery({
+    queryKey: ["plan-extras", account?.id],
+    queryFn: () => getExtrasFn({ data: { accountId: account!.id } }),
+    enabled: !!account && !!aiPlanQuery.data,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (extrasQuery.data) {
+      setStakeholders(extrasQuery.data.stakeholders);
+      setFiles(extrasQuery.data.files);
+    }
+  }, [extrasQuery.data]);
+
+  const persistExtras = async (next: { stakeholders?: Stakeholder[]; files?: SharedFile[] }) => {
+    if (!account) return;
+    const payload = {
+      accountId: account.id,
+      stakeholders: next.stakeholders ?? stakeholders,
+      files: next.files ?? files,
+    };
+    try {
+      await saveExtrasFn({ data: payload });
+      queryClient.setQueryData(["plan-extras", account.id], {
+        stakeholders: payload.stakeholders,
+        files: payload.files,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+    }
+  };
+
   const planContent = aiPlanQuery.data?.plan ?? null;
   const timeline = planContent?.timeline ?? [];
   const objections = planContent?.objections ?? [];

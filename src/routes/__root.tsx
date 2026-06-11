@@ -19,6 +19,7 @@ import { ModalsProvider } from "@/components/modals/ModalsProvider";
 import { AccountDetailPanel } from "@/components/detail/AccountDetailPanel";
 import { Toaster } from "@/components/ui/sonner";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { VoiceAssistantButton } from "@/components/voice/VoiceAssistantButton";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -103,6 +104,7 @@ function AppShell() {
             </div>
             <AccountDetailPanel />
             <OnboardingTour />
+            <VoiceAssistantButton />
           </div>
         </ModalsProvider>
       </DashboardsProvider>

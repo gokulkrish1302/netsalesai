@@ -431,42 +431,93 @@ function ActionPlanDetail() {
         </TabsContent>
 
         {/* PLAYBOOK */}
-        <TabsContent value="playbook" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <section className="app-card p-5">
-            <h2 className="mb-3 text-sm font-semibold">Talking points</h2>
-            <ul className="list-disc space-y-2 pl-5 text-sm">
-              {planContent?.talkingPoints.slice(0, 3).map((t, i) => <li key={i}>{t}</li>)}
-            </ul>
-          </section>
-          <section className="app-card p-5">
-            <h2 className="mb-3 text-sm font-semibold">Top objections ({account.industry})</h2>
-            <div className="space-y-3">
-              {objections.slice(0, 2).map((o, i) => (
-                <div key={i} className="rounded-xl border bg-background p-3">
-                  <p className="text-sm font-medium italic">{o.objection}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">{o.response}</p>
-                </div>
-              ))}
+        <TabsContent value="playbook" className="space-y-5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">
+              {aiPlanQuery.isLoading
+                ? "Generating AI-tailored playbook…"
+                : aiPlanQuery.data?.cached
+                  ? "Cached AI plan · regenerate for a fresh version."
+                  : "AI-generated playbook based on this account's signals."}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRegeneratePlan}
+              disabled={aiPlanQuery.isFetching}
+            >
+              <Sparkles className={cn("mr-1 h-3.5 w-3.5", aiPlanQuery.isFetching && "animate-pulse")} />
+              Regenerate
+            </Button>
+          </div>
+
+          {aiPlanQuery.isError && (
+            <div className="app-card border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+              {aiPlanQuery.error instanceof Error ? aiPlanQuery.error.message : "Failed to generate plan."}
+              <Button size="sm" variant="outline" className="ml-3" onClick={() => aiPlanQuery.refetch()}>
+                Try again
+              </Button>
             </div>
-          </section>
-          <section className="app-card p-5 lg:col-span-2">
-            <h2 className="mb-3 text-sm font-semibold">
-              Outreach timeline — {URGENCY_LABEL[plan.urgency]}
-            </h2>
-            <ol className="space-y-2 text-sm">
-              {timeline.map((s, i) => (
-                <li key={i} className="flex gap-3">
-                  <span
-                    className="shrink-0 rounded px-2 py-0.5 text-xs font-semibold"
-                    style={{ backgroundColor: "var(--accent)", color: "var(--primary)" }}
-                  >
-                    {s.label}
-                  </span>
-                  <span>{s.action}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
+          )}
+
+          {aiPlanQuery.isLoading && (
+            <div className="app-card p-5 text-sm text-muted-foreground">Loading playbook…</div>
+          )}
+
+          {planContent && (
+            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+              <section className="app-card p-5">
+                <h2 className="mb-3 text-sm font-semibold">Executive summary</h2>
+                <p className="text-sm text-foreground/90">{planContent.executiveSummary}</p>
+              </section>
+              <section className="app-card p-5">
+                <h2 className="mb-3 text-sm font-semibold">Recommended products</h2>
+                <ul className="space-y-2 text-sm">
+                  {planContent.products.map((p) => (
+                    <li key={p.name}>
+                      <span className="font-semibold">{p.name}</span>
+                      <span className="text-muted-foreground"> — {p.description}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+              <section className="app-card p-5">
+                <h2 className="mb-3 text-sm font-semibold">Talking points</h2>
+                <ul className="list-disc space-y-2 pl-5 text-sm">
+                  {planContent.talkingPoints.map((t, i) => <li key={i}>{t}</li>)}
+                </ul>
+              </section>
+              <section className="app-card p-5">
+                <h2 className="mb-3 text-sm font-semibold">Top objections ({account.industry})</h2>
+                <div className="space-y-3">
+                  {objections.map((o, i) => (
+                    <div key={i} className="rounded-xl border bg-background p-3">
+                      <p className="text-sm font-medium italic">{o.objection}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{o.response}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <section className="app-card p-5 lg:col-span-2">
+                <h2 className="mb-3 text-sm font-semibold">
+                  Outreach timeline — {URGENCY_LABEL[plan.urgency]}
+                </h2>
+                <ol className="space-y-2 text-sm">
+                  {timeline.map((s, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span
+                        className="shrink-0 rounded px-2 py-0.5 text-xs font-semibold"
+                        style={{ backgroundColor: "var(--accent)", color: "var(--primary)" }}
+                      >
+                        {s.week}
+                      </span>
+                      <span>{s.action}</span>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            </div>
+          )}
         </TabsContent>
 
         {/* STAKEHOLDERS */}

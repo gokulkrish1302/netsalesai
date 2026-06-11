@@ -125,7 +125,11 @@ async function generatePlan(row: Record<string, unknown>): Promise<GeneratedActi
   }
   const result = ActionPlanSchema.safeParse(parsed);
   if (!result.success) {
-    throw new Error(`AI output failed validation: ${result.error.issues.map((i) => i.message).join("; ")}`);
+    const details = result.error.issues
+      .map((i) => `${i.path.join(".") || "(root)"}: ${i.message}`)
+      .join("; ");
+    console.error("ActionPlan validation failed", { details, parsed });
+    throw new Error(`AI output failed validation: ${details}`);
   }
   return result.data;
 }

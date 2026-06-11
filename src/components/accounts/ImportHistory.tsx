@@ -68,14 +68,21 @@ export function ImportHistory({ onImportClick, defaultOpen = false }: { onImport
                     size="sm"
                     variant="ghost"
                     className="h-8 px-2 text-muted-foreground hover:text-[color:var(--hot)]"
-                    onClick={() => {
-                      removeImportRecord(r.id);
-                      toast.success(`Removed ${r.filename}`);
+                    onClick={async () => {
+                      if (!rep) return;
+                      try {
+                        await deleteImportedFile(rep.email, r.filename);
+                        toast.success(`Removed ${r.filename}`);
+                      } catch (err) {
+                        const msg = err instanceof Error ? err.message : "Unknown error";
+                        toast.error(`Failed to remove: ${msg}`);
+                      }
                     }}
                     aria-label={`Remove ${r.filename}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
+
                 </li>
               ))}
             </ul>

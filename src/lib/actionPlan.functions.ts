@@ -135,17 +135,6 @@ async function generatePlan(row: Record<string, unknown>): Promise<GeneratedActi
 
 const InputSchema = z.object({ accountId: z.string().uuid() });
 
-async function loadAccountForCaller(
-  supabase: NonNullable<Awaited<ReturnType<typeof requireSupabaseAuth.client>>> extends never
-    ? never
-    : Awaited<ReturnType<typeof Promise.resolve>>,
-  accountId: string,
-): Promise<Record<string, unknown>> {
-  // typing helper; runtime uses caller's supabase client
-  throw new Error("unused");
-}
-void loadAccountForCaller;
-
 export const getOrGenerateActionPlan = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => InputSchema.parse(input))

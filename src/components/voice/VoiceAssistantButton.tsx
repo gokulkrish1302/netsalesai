@@ -248,6 +248,16 @@ export function VoiceAssistantButton() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {status === "speaking" && (
+                <button
+                  onClick={stopSpeaking}
+                  className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/20"
+                  title="Stop speaking"
+                >
+                  <VolumeX className="h-3.5 w-3.5" />
+                  Stop
+                </button>
+              )}
               <button
                 onClick={clearConversation}
                 disabled={messages.length === 0 && !interim}
@@ -293,8 +303,19 @@ export function VoiceAssistantButton() {
                 >
                   {m.content}
                 </div>
-                <div className="mt-1 px-1 text-[10px] text-muted-foreground">
-                  {formatTime(m.timestamp)}
+                <div className="mt-1 flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
+                  <span>{formatTime(m.timestamp)}</span>
+                  {m.role === "assistant" && (
+                    <button
+                      onClick={() => speak(m.content)}
+                      className="flex items-center gap-1 rounded-full px-1.5 py-0.5 hover:bg-accent hover:text-foreground"
+                      title="Replay this response"
+                      aria-label="Replay this response"
+                    >
+                      <Volume2 className="h-3 w-3" />
+                      Replay
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

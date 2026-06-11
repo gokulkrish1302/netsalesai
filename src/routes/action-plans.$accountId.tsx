@@ -28,6 +28,7 @@ import {
   Link as LinkIcon,
   CheckCircle2,
   Circle,
+  Loader2,
 } from "lucide-react";
 import {
   URGENCY_LABEL,
@@ -35,12 +36,13 @@ import {
   estimateDealSize,
   suggestNextStep,
 } from "@/lib/actionPlans";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getOrGenerateActionPlan,
   regenerateActionPlan,
 } from "@/lib/actionPlan.functions";
+import { getPlanExtras, savePlanExtras } from "@/lib/planExtras.functions";
 import { formatCurrencyShort, formatDate } from "@/lib/format";
 import type { ActionPlanStatus, ScoredAccount, Urgency } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -76,8 +78,7 @@ const STAGE_LABEL: Record<ActionPlanStatus, string> = {
   lost: "Lost",
 };
 
-interface Stakeholder { id: string; name: string; role: string; email: string }
-interface SharedFile { id: string; name: string; url: string }
+import type { Stakeholder, SharedFile } from "@/lib/planExtras.functions";
 
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).join("").slice(0, 2).toUpperCase();
@@ -94,9 +95,10 @@ function ActionPlanDetail() {
   const navigate = useNavigate();
   const { state, scoredAccounts, createPlan, setPlanStatus, addPlanActivity, setPlanNextStep, removePlan } = useApp();
   const { openOutcome } = useModals();
+  const queryClient = useQueryClient();
   const [note, setNote] = useState("");
 
-  // Local sales-room state (lightweight, in-memory per session)
+  // Sales-room state — persisted in Supabase
   const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
   const [files, setFiles] = useState<SharedFile[]>([]);
   const [shName, setShName] = useState("");
@@ -116,6 +118,9 @@ function ActionPlanDetail() {
 
   const getPlanFn = useServerFn(getOrGenerateActionPlan);
   const regenPlanFn = useServerFn(regenerateActionPlan);
+  const getExtrasFn = useServerFn(getPlanExtras);
+  const saveExtrasFn = useServerFn(savePlanExtras);
+
   const aiPlanQuery = useQuery({
     queryKey: ["action-plan", account?.id],
     queryFn: () => getPlanFn({ data: { accountId: account!.id } }),
@@ -123,6 +128,39 @@ function ActionPlanDetail() {
     staleTime: 5 * 60_000,
     retry: false,
   });
+
+  const extrasQuery = useQuery({
+    queryKey: ["plan-extras", account?.id],
+    queryFn: () => getExtrasFn({ data: { accountId: account!.id } }),
+    enabled: !!account && !!aiPlanQuery.data,
+    staleTime: 30_000,
+  });
+
+  useEffect(() => {
+    if (extrasQuery.data) {
+      setStakeholders(extrasQuery.data.stakeholders);
+      setFiles(extrasQuery.data.files);
+    }
+  }, [extrasQuery.data]);
+
+  const persistExtras = async (next: { stakeholders?: Stakeholder[]; files?: SharedFile[] }) => {
+    if (!account) return;
+    const payload = {
+      accountId: account.id,
+      stakeholders: next.stakeholders ?? stakeholders,
+      files: next.files ?? files,
+    };
+    try {
+      await saveExtrasFn({ data: payload });
+      queryClient.setQueryData(["plan-extras", account.id], {
+        stakeholders: payload.stakeholders,
+        files: payload.files,
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save");
+    }
+  };
+
   const planContent = aiPlanQuery.data?.plan ?? null;
   const timeline = planContent?.timeline ?? [];
   const objections = planContent?.objections ?? [];
@@ -142,7 +180,7 @@ function ActionPlanDetail() {
   if (account && !plan) {
     return (
       <div className="app-card flex flex-col items-center gap-4 p-12 text-center">
-        <Sparkles className="h-10 w-10 text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Creating sales room and recommendations for {account.accountName}…</p>
       </div>
     );
@@ -201,24 +239,41 @@ function ActionPlanDetail() {
     }
   };
 
-  function addStakeholder(e: React.FormEvent) {
+  async function addStakeholder(e: React.FormEvent) {
     e.preventDefault();
     if (!shName.trim()) return;
-    setStakeholders((arr) => [
-      ...arr,
+    const next = [
+      ...stakeholders,
       { id: `st-${Date.now()}`, name: shName.trim(), role: shRole.trim() || "Stakeholder", email: shEmail.trim() },
-    ]);
+    ];
+    setStakeholders(next);
     setShName(""); setShRole(""); setShEmail("");
+    await persistExtras({ stakeholders: next });
     toast.success("Stakeholder added");
   }
 
-  function addFile(e: React.FormEvent) {
+  async function removeStakeholder(id: string) {
+    const next = stakeholders.filter((s) => s.id !== id);
+    setStakeholders(next);
+    await persistExtras({ stakeholders: next });
+  }
+
+  async function addFile(e: React.FormEvent) {
     e.preventDefault();
     if (!fileName.trim() || !fileUrl.trim()) return;
-    setFiles((arr) => [...arr, { id: `f-${Date.now()}`, name: fileName.trim(), url: fileUrl.trim() }]);
+    const next = [...files, { id: `f-${Date.now()}`, name: fileName.trim(), url: fileUrl.trim() }];
+    setFiles(next);
     setFileName(""); setFileUrl("");
+    await persistExtras({ files: next });
     toast.success("File link saved");
   }
+
+  async function removeFile(id: string) {
+    const next = files.filter((f) => f.id !== id);
+    setFiles(next);
+    await persistExtras({ files: next });
+  }
+
 
   const sourceTs = account.sourceTimestamp ? formatDate(account.sourceTimestamp) : "—";
   const isClosed = plan.status === "won" || plan.status === "lost";
@@ -461,7 +516,9 @@ function ActionPlanDetail() {
           )}
 
           {aiPlanQuery.isLoading && (
-            <div className="app-card p-5 text-sm text-muted-foreground">Loading playbook…</div>
+            <div className="app-card flex items-center gap-3 p-5 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Generating tailored playbook…
+            </div>
           )}
 
           {planContent && (
@@ -541,11 +598,22 @@ function ActionPlanDetail() {
                         <div className="text-xs text-muted-foreground">{s.role}{s.email ? ` · ${s.email}` : ""}</div>
                       </div>
                     </div>
-                    {s.email && (
-                      <Button size="sm" variant="ghost" asChild>
-                        <a href={`mailto:${s.email}`}><Mail className="mr-1 h-3.5 w-3.5" /> Email</a>
+                    <div className="flex items-center gap-1">
+                      {s.email && (
+                        <Button size="sm" variant="ghost" asChild className="cursor-pointer">
+                          <a href={`mailto:${s.email}`}><Mail className="mr-1 h-3.5 w-3.5" /> Email</a>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer text-muted-foreground hover:text-[color:var(--hot)]"
+                        onClick={() => removeStakeholder(s.id)}
+                        aria-label="Remove stakeholder"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    )}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -580,11 +648,22 @@ function ActionPlanDetail() {
                       <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                       <span className="truncate text-sm font-medium">{f.name}</span>
                     </div>
-                    <Button size="sm" variant="ghost" asChild>
-                      <a href={f.url} target="_blank" rel="noreferrer">
-                        <LinkIcon className="mr-1 h-3.5 w-3.5" /> Open
-                      </a>
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" asChild className="cursor-pointer">
+                        <a href={f.url} target="_blank" rel="noreferrer">
+                          <LinkIcon className="mr-1 h-3.5 w-3.5" /> Open
+                        </a>
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer text-muted-foreground hover:text-[color:var(--hot)]"
+                        onClick={() => removeFile(f.id)}
+                        aria-label="Remove file"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </li>
                 ))}
               </ul>

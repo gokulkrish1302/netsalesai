@@ -16,7 +16,7 @@ export const tourSteps: DriveStep[] = [
     popover: {
       title: "Dashboard",
       description:
-        "Your daily command center — KPIs, priority matrix, renewals, and the morning briefing.",
+        "Your daily command center — KPIs, top priority accounts, renewals, and the morning briefing.",
       side: "right",
     },
   },

@@ -6,7 +6,7 @@ import { ChevronDown, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
-import { deleteImportedFile } from "@/lib/imports.client";
+import { deleteImportedFile } from "@/lib/imports";
 
 export function ImportHistory({ onImportClick, defaultOpen = false }: { onImportClick: () => void; defaultOpen?: boolean }) {
   const { state } = useApp();

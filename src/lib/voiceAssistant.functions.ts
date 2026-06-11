@@ -18,10 +18,13 @@ type VoiceContextAccount = {
   inActionPlan?: boolean;
 };
 
+type HistoryMessage = { role: "user" | "assistant"; content: string };
+
 type Input = {
   transcript: string;
   accounts: VoiceContextAccount[];
   repName?: string;
+  history?: HistoryMessage[];
 };
 
 export const askVoiceAssistant = createServerFn({ method: "POST" })
@@ -57,11 +60,16 @@ Rep: ${data.repName ?? "the rep"}.
 Accounts (${accounts.length}):
 ${summary || "(no accounts loaded)"}`;
 
+    const history = (data.history ?? []).slice(-20);
+
     const gateway = createLovableAiGatewayProvider(key);
     const { text } = await generateText({
       model: gateway("google/gemini-3-flash-preview"),
       system,
-      prompt: transcript,
+      messages: [
+        ...history.map((m) => ({ role: m.role, content: m.content })),
+        { role: "user" as const, content: transcript },
+      ],
     });
 
     return { reply: text.trim() };

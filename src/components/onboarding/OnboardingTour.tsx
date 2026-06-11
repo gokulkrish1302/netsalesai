@@ -11,7 +11,7 @@ const STARTED_KEY = "netapp.onboarding.started";
 
 export function OnboardingTour() {
   const { session, user } = useAuth();
-  const { scoredAccounts, openAccount, activeAccountId } = useApp();
+  const { scoredAccounts, openAccount, activeAccount } = useApp();
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const driverRef = useRef<Driver | null>(null);
@@ -67,7 +67,7 @@ export function OnboardingTour() {
           (sel === '[data-tour="account-detail"]' ||
             sel === '[data-tour="action-plan-btn"]') &&
           firstAccountId &&
-          !activeAccountId
+          !activeAccount
         ) {
           openAccount(firstAccountId);
         }

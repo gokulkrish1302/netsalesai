@@ -24,6 +24,7 @@ export type Database = {
           data_source: string | null
           device_age: number | null
           id: string
+          import_filename: string | null
           industry: string | null
           it_budget: number | null
           it_budget_estimated: boolean | null
@@ -51,6 +52,7 @@ export type Database = {
           data_source?: string | null
           device_age?: number | null
           id?: string
+          import_filename?: string | null
           industry?: string | null
           it_budget?: number | null
           it_budget_estimated?: boolean | null
@@ -78,6 +80,7 @@ export type Database = {
           data_source?: string | null
           device_age?: number | null
           id?: string
+          import_filename?: string | null
           industry?: string | null
           it_budget?: number | null
           it_budget_estimated?: boolean | null

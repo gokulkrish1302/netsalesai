@@ -92,7 +92,19 @@ function AccountsPage() {
     toast.success(`Moved ${a.accountName} → ${CATEGORY_META[col].label}`);
   }
 
+  if (scoredAccounts.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="display text-[28px] leading-tight md:text-[32px]">Accounts</h1>
+        </div>
+        <EmptyAccountsState onImport={() => modals.openImport()} />
+      </div>
+    );
+  }
+
   return (
+
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

@@ -5,7 +5,7 @@ import { UploadCloud, FileSpreadsheet, Download, X, AlertTriangle, Plus, Trash2 
 import { toast } from "sonner";
 import { useAuth } from "@/state/AuthContext";
 import { parseAccountsWorkbook, buildTemplateWorkbook, type ImportResult } from "@/lib/importAccounts";
-import { saveImportedAccounts } from "@/lib/imports.client";
+import { saveImportedAccounts } from "@/lib/imports";
 import { CATEGORY_META, scoreAccount } from "@/lib/scoring";
 import { formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";

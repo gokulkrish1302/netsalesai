@@ -26,26 +26,35 @@ function rowToAccount(row: {
   industry?: string | null;
   region?: string | null;
   import_filename?: string | null;
+  sales_rep?: string | null;
+  company_size?: string | null;
+  device_model?: string | null;
+  end_of_life?: boolean | null;
+  storage_capacity_tb?: number | null;
+  annual_revenue?: number | null;
+  last_contact_date?: string | null;
+  pipeline_stage?: string | null;
 }): Account {
   const cloud = (row.cloud_status as CloudStatus | null) ?? ("none" as CloudStatus);
+  const deviceAge = Number(row.device_age ?? 0);
   return {
     id: row.id,
     accountName: row.account_name,
-    salesRep: row.rep_email,
+    salesRep: row.sales_rep ?? row.rep_email,
     industry: ((row.industry as Industry | null) ?? "Tech") as Industry,
     region: ((row.region as Region | null) ?? "West") as Region,
-    companySize: "—",
-    deviceModel: (row.netapp_models?.[0] ?? "—"),
-    deviceAgeYears: Number(row.device_age ?? 0),
-    endOfLife: Number(row.device_age ?? 0) >= 5,
-    storageCapacityTB: 0,
+    companySize: row.company_size ?? "—",
+    deviceModel: row.device_model ?? row.netapp_models?.[0] ?? "—",
+    deviceAgeYears: deviceAge,
+    endOfLife: row.end_of_life ?? deviceAge >= 5,
+    storageCapacityTB: Number(row.storage_capacity_tb ?? 0),
     utilizationPct: Number(row.storage_utilization ?? 0),
     itBudgetUSD: Number(row.it_budget ?? 0),
     cloudStatus: cloud,
     contractRenewalDays: Number(row.renewal_days ?? 365),
-    annualRevenue: 0,
-    lastContactDate: null,
-    pipelineStage: (row.status as PipelineStage) ?? "not_contacted",
+    annualRevenue: Number(row.annual_revenue ?? 0),
+    lastContactDate: row.last_contact_date ?? null,
+    pipelineStage: ((row.pipeline_stage ?? row.status) as PipelineStage) ?? "not_contacted",
     dataSource: (row.data_source as "active_iq" | "excel_import" | null) ?? "excel_import",
     sourceTimestamp: row.last_synced_at ?? new Date().toISOString(),
     netappModels: row.netapp_models ?? undefined,
@@ -61,7 +70,7 @@ function rowToAccount(row: {
 }
 
 const ACCOUNT_COLUMNS =
-  "id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email, cloud_status, data_source, last_synced_at, netapp_models, ontap_version, cluster_count, storage_architecture, risk_count_high, risk_count_medium, it_budget_estimated, industry, region, import_filename";
+  "id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email, cloud_status, data_source, last_synced_at, netapp_models, ontap_version, cluster_count, storage_architecture, risk_count_high, risk_count_medium, it_budget_estimated, industry, region, import_filename, sales_rep, company_size, device_model, end_of_life, storage_capacity_tb, annual_revenue, last_contact_date, pipeline_stage";
 
 /**
  * Bridges Supabase data into the in-memory AppStore for the signed-in rep.

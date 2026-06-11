@@ -14,6 +14,12 @@ async function customerId(filename: string, accountName: string): Promise<string
 
 function accountToRow(a: Account, repEmail: string, filename: string, cid: string) {
   const scored = scoreAccount(a);
+  // last_contact_date is a Postgres DATE — emit YYYY-MM-DD or null
+  let lastContact: string | null = null;
+  if (a.lastContactDate) {
+    const d = new Date(a.lastContactDate);
+    if (!Number.isNaN(d.getTime())) lastContact = d.toISOString().slice(0, 10);
+  }
   return {
     rep_email: repEmail,
     account_name: a.accountName,
@@ -38,6 +44,15 @@ function accountToRow(a: Account, repEmail: string, filename: string, cid: strin
     risk_count_high: a.riskCountHigh ?? 0,
     risk_count_medium: a.riskCountMedium ?? 0,
     import_filename: filename,
+    // Newly mapped Excel columns
+    sales_rep: a.salesRep ?? null,
+    company_size: a.companySize ?? null,
+    device_model: a.deviceModel ?? null,
+    end_of_life: a.endOfLife ?? false,
+    storage_capacity_tb: a.storageCapacityTB ?? null,
+    annual_revenue: a.annualRevenue ? Math.round(a.annualRevenue) : null,
+    last_contact_date: lastContact,
+    pipeline_stage: a.pipelineStage,
   };
 }
 

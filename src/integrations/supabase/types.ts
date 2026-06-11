@@ -55,85 +55,109 @@ export type Database = {
       accounts: {
         Row: {
           account_name: string
+          annual_revenue: number | null
           cloud_status: string | null
           cluster_count: number | null
+          company_size: string | null
           created_at: string
           customer_id: string | null
           data_source: string | null
           device_age: number | null
+          device_model: string | null
+          end_of_life: boolean | null
           id: string
           import_filename: string | null
           industry: string | null
           it_budget: number | null
           it_budget_estimated: boolean | null
+          last_contact_date: string | null
           last_synced_at: string | null
           netapp_models: string[] | null
           ontap_version: string | null
+          pipeline_stage: string | null
           priority_badge: string | null
           region: string | null
           renewal_days: number | null
           rep_email: string
           risk_count_high: number | null
           risk_count_medium: number | null
+          sales_rep: string | null
           score: number | null
           status: string | null
           storage_architecture: string | null
+          storage_capacity_tb: number | null
           storage_utilization: number | null
           updated_at: string
         }
         Insert: {
           account_name: string
+          annual_revenue?: number | null
           cloud_status?: string | null
           cluster_count?: number | null
+          company_size?: string | null
           created_at?: string
           customer_id?: string | null
           data_source?: string | null
           device_age?: number | null
+          device_model?: string | null
+          end_of_life?: boolean | null
           id?: string
           import_filename?: string | null
           industry?: string | null
           it_budget?: number | null
           it_budget_estimated?: boolean | null
+          last_contact_date?: string | null
           last_synced_at?: string | null
           netapp_models?: string[] | null
           ontap_version?: string | null
+          pipeline_stage?: string | null
           priority_badge?: string | null
           region?: string | null
           renewal_days?: number | null
           rep_email: string
           risk_count_high?: number | null
           risk_count_medium?: number | null
+          sales_rep?: string | null
           score?: number | null
           status?: string | null
           storage_architecture?: string | null
+          storage_capacity_tb?: number | null
           storage_utilization?: number | null
           updated_at?: string
         }
         Update: {
           account_name?: string
+          annual_revenue?: number | null
           cloud_status?: string | null
           cluster_count?: number | null
+          company_size?: string | null
           created_at?: string
           customer_id?: string | null
           data_source?: string | null
           device_age?: number | null
+          device_model?: string | null
+          end_of_life?: boolean | null
           id?: string
           import_filename?: string | null
           industry?: string | null
           it_budget?: number | null
           it_budget_estimated?: boolean | null
+          last_contact_date?: string | null
           last_synced_at?: string | null
           netapp_models?: string[] | null
           ontap_version?: string | null
+          pipeline_stage?: string | null
           priority_badge?: string | null
           region?: string | null
           renewal_days?: number | null
           rep_email?: string
           risk_count_high?: number | null
           risk_count_medium?: number | null
+          sales_rep?: string | null
           score?: number | null
           status?: string | null
           storage_architecture?: string | null
+          storage_capacity_tb?: number | null
           storage_utilization?: number | null
           updated_at?: string
         }

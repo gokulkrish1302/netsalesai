@@ -15,7 +15,14 @@ async function gql<T>(token: string, query: string, variables?: Record<string, u
     body: JSON.stringify({ query, variables }),
   });
   if (!res.ok) throw new Error(`Active IQ HTTP ${res.status}`);
-  const json = (await res.json()) as GqlResult<T>;
+  const text = await res.text();
+  let json: GqlResult<T>;
+  try {
+    json = JSON.parse(text) as GqlResult<T>;
+  } catch {
+    const snippet = text.slice(0, 120).replace(/\s+/g, " ");
+    throw new Error(`Active IQ returned non-JSON response (check ACTIVE_IQ_TOKEN): ${snippet}`);
+  }
   if (json.errors?.length) throw new Error(json.errors.map((e) => e.message).join("; "));
   if (!json.data) throw new Error("Active IQ returned no data");
   return json.data;

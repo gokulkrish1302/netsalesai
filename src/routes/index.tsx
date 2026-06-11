@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { StatStrip } from "@/components/dashboard/StatStrip";
-import { PriorityMatrix } from "@/components/dashboard/PriorityMatrix";
 import { TopPriorityCard } from "@/components/dashboard/TopPriorityCard";
 import { RenewalRadar } from "@/components/dashboard/RenewalRadar";
 import { AlertBanner } from "@/components/dashboard/AlertBanner";
@@ -41,7 +40,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Priority matrix and renewal radar across NetApp's enterprise cloud migration portfolio.",
+          "Ranked priority accounts and renewal radar across NetApp's enterprise cloud migration portfolio.",
       },
     ],
   }),
@@ -105,52 +104,35 @@ function Dashboard() {
         return <StatStrip key="stats" accounts={filtered} kpis={layout.kpis} />;
       case "alert":
         return <AlertBanner key="alert" accounts={filtered} />;
-      case "matrix":
-        return (
-          <div key="matrix" className="grid grid-cols-1 gap-5 lg:grid-cols-5">
-            <div className="lg:col-span-3">
-              <PriorityMatrix accounts={filtered} />
-            </div>
-            <div className="flex flex-col gap-5 lg:col-span-2">
-              {visibleSet.has("top") && <TopPriorityCard accounts={filtered} />}
-              {visibleSet.has("renewal") && <RenewalRadar accounts={filtered} />}
-            </div>
-          </div>
-        );
-      case "top":
-        if (visibleSet.has("matrix")) return null;
-        return (
-          <div key="top" className="max-w-md">
-            <TopPriorityCard accounts={filtered} />
-          </div>
-        );
-      case "renewal":
-        if (visibleSet.has("matrix")) return null;
-        return (
-          <div key="renewal" className="max-w-md">
-            <RenewalRadar accounts={filtered} />
-          </div>
-        );
       case "ranked":
-        // Render ranked + context as a paired 2-col block when both visible.
         if (visibleSet.has("context")) {
           return (
-            <div key="ranked-context" className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div key="ranked-context" className="grid grid-cols-1 gap-5 lg:grid-cols-[1.6fr_1fr]">
               <RankedAccountsList accounts={filtered} selectedId={selectedId} onSelect={setSelectedId} />
               <ContextPreview accounts={filtered} selectedId={selectedId} />
             </div>
           );
         }
         return (
-          <div key="ranked" className="max-w-md">
-            <RankedAccountsList accounts={filtered} selectedId={selectedId} onSelect={setSelectedId} />
-          </div>
+          <RankedAccountsList key="ranked" accounts={filtered} selectedId={selectedId} onSelect={setSelectedId} />
         );
       case "context":
         if (visibleSet.has("ranked")) return null;
         return (
           <div key="context" className="max-w-md">
             <ContextPreview accounts={filtered} selectedId={selectedId} />
+          </div>
+        );
+      case "top":
+        return (
+          <div key="top" className="max-w-md">
+            <TopPriorityCard accounts={filtered} />
+          </div>
+        );
+      case "renewal":
+        return (
+          <div key="renewal" className="max-w-md">
+            <RenewalRadar accounts={filtered} />
           </div>
         );
       case "donut":

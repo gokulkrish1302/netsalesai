@@ -6,7 +6,6 @@ import { toast } from "sonner";
 export type WidgetKey =
   | "stats"
   | "alert"
-  | "matrix"
   | "top"
   | "renewal"
   | "ranked"
@@ -55,10 +54,9 @@ export interface Dashboard {
 export const ALL_WIDGETS: { key: WidgetKey; label: string }[] = [
   { key: "stats", label: "Stat strip" },
   { key: "alert", label: "Renewal alert banner" },
-  { key: "matrix", label: "Opportunity matrix" },
+  { key: "ranked", label: "Top priority accounts" },
   { key: "top", label: "Today's #1 priority" },
   { key: "renewal", label: "Renewal radar" },
-  { key: "ranked", label: "Ranked accounts list" },
   { key: "context", label: "Context preview" },
   { key: "donut", label: "Category donut" },
   { key: "topbar", label: "Top accounts bar chart" },
@@ -80,8 +78,7 @@ export const ALL_KPIS: { key: KpiKey; label: string }[] = [
 export const DEFAULT_LAYOUT: DashboardLayout = {
   widgets: ALL_WIDGETS.map((w) => ({
     key: w.key,
-    // Keep the original five visible by default; new widgets opt-in.
-    visible: ["stats", "alert", "matrix", "top", "renewal"].includes(w.key),
+    visible: ["stats", "alert", "ranked", "top", "renewal"].includes(w.key),
   })),
   kpis: ["accounts", "hot", "pipeline", "active_plans"],
   filters: {},
@@ -96,7 +93,7 @@ function normalizeLayout(raw: unknown): DashboardLayout {
     (w) =>
       widgetsByKey.get(w.key) ?? {
         key: w.key,
-        visible: ["stats", "alert", "matrix", "top", "renewal"].includes(w.key),
+        visible: ["stats", "alert", "ranked", "top", "renewal"].includes(w.key),
       },
   );
   const kpis = (r.kpis ?? DEFAULT_LAYOUT.kpis).filter((k) =>

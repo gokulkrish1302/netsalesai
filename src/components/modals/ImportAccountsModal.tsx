@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, Download, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { parseAccountsWorkbook, buildTemplateWorkbook, type ImportResult } from "@/lib/importAccounts";
+import { saveImportedAccounts } from "@/lib/imports.client";
 import { CATEGORY_META, scoreAccount } from "@/lib/scoring";
 import { formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,8 @@ export function ImportAccountsModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const { addImportedAccounts } = useApp();
+  const { rep } = useAuth();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);

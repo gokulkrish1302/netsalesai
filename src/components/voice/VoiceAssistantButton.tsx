@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Volume2, X, Send, Trash2, MessageSquare } from "lucide-react";
+import { Mic, Loader2, Volume2, VolumeX, X, Send, Trash2, MessageSquare } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { askVoiceAssistant } from "@/lib/voiceAssistant.functions";
@@ -57,16 +57,49 @@ export function VoiceAssistantButton() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, interim, status]);
 
+  // Warm up the voice list (Chrome loads voices async)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.getVoices();
+    const handler = () => window.speechSynthesis.getVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", handler);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
+  }, []);
+
+  function pickVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    const en = voices.filter((v) => v.lang?.toLowerCase().startsWith("en"));
+    const preferred = [
+      "Google US English",
+      "Microsoft Aria Online (Natural) - English (United States)",
+      "Microsoft Jenny Online (Natural) - English (United States)",
+      "Samantha",
+    ];
+    for (const name of preferred) {
+      const match = en.find((v) => v.name === name);
+      if (match) return match;
+    }
+    return en.find((v) => /natural|neural|enhanced/i.test(v.name)) ?? en[0] ?? voices[0];
+  }
+
   function speak(text: string) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.05;
-    utter.pitch = 1;
+    const voice = pickVoice();
+    if (voice) utter.voice = voice;
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
     utter.onend = () => setStatus("idle");
     utter.onerror = () => setStatus("idle");
     setStatus("speaking");
     window.speechSynthesis.speak(utter);
+  }
+
+  function stopSpeaking() {
+    window.speechSynthesis?.cancel();
+    if (status === "speaking") setStatus("idle");
   }
 
   async function submit(text: string) {
@@ -74,6 +107,8 @@ export function VoiceAssistantButton() {
     if (!trimmed) return;
     setInterim("");
     setTextInput("");
+    // Stop any in-flight TTS before producing a new response
+    window.speechSynthesis?.cancel();
 
     // Snapshot history BEFORE adding the new user message (so we don't double-send it)
     const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));
@@ -222,6 +257,16 @@ export function VoiceAssistantButton() {
               </div>
             </div>
             <div className="flex items-center gap-1">
+              {status === "speaking" && (
+                <button
+                  onClick={stopSpeaking}
+                  className="flex items-center gap-1 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/20"
+                  title="Stop speaking"
+                >
+                  <VolumeX className="h-3.5 w-3.5" />
+                  Stop
+                </button>
+              )}
               <button
                 onClick={clearConversation}
                 disabled={messages.length === 0 && !interim}
@@ -267,8 +312,19 @@ export function VoiceAssistantButton() {
                 >
                   {m.content}
                 </div>
-                <div className="mt-1 px-1 text-[10px] text-muted-foreground">
-                  {formatTime(m.timestamp)}
+                <div className="mt-1 flex items-center gap-2 px-1 text-[10px] text-muted-foreground">
+                  <span>{formatTime(m.timestamp)}</span>
+                  {m.role === "assistant" && (
+                    <button
+                      onClick={() => speak(m.content)}
+                      className="flex items-center gap-1 rounded-full px-1.5 py-0.5 hover:bg-accent hover:text-foreground"
+                      title="Replay this response"
+                      aria-label="Replay this response"
+                    >
+                      <Volume2 className="h-3 w-3" />
+                      Replay
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

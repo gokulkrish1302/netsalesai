@@ -8,8 +8,8 @@ import { CompetitiveRiskBadge } from "@/components/common/CompetitiveRiskBadge";
 import { SourceBadge } from "@/components/common/SourceBadge";
 import { PipelineStageSelect } from "./PipelineStageSelect";
 import { Button } from "@/components/ui/button";
-import { Mail, ClipboardList, StickyNote, ArrowDown, Target } from "lucide-react";
-import { formatCurrencyShort, formatPct } from "@/lib/format";
+import { Mail, StickyNote, ArrowDown, Target, AlertOctagon } from "lucide-react";
+import { formatCurrencyShort, formatDate, formatPct } from "@/lib/format";
 import { useModals } from "@/components/modals/ModalsProvider";
 
 export function AccountCard({ account }: { account: ScoredAccount }) {
@@ -24,7 +24,7 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
           e.stopPropagation();
           modals.openDeprioritize(account);
         }}
-        className="absolute right-3 top-3 z-10 hidden h-8 w-8 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground group-hover:flex"
+        className="absolute right-3 top-3 z-10 hidden h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm transition-colors hover:bg-accent hover:text-foreground group-hover:flex focus-visible:flex"
         aria-label="Deprioritize this account"
         title="Deprioritize"
       >
@@ -35,7 +35,7 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
         <div className="min-w-0 flex-1">
           <button
             onClick={() => openAccount(account.id)}
-            className="text-left text-base font-semibold hover:underline"
+            className="cursor-pointer text-left text-base font-semibold hover:underline"
           >
             {account.accountName}
           </button>
@@ -45,6 +45,14 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
             <span>{account.region}</span>
             <CategoryPill category={account.category} className="ml-1" />
             <SourceBadge source={account.dataSource} size="xs" />
+            {account.endOfLife && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+                style={{ backgroundColor: "var(--hot-bg)", color: "var(--hot)" }}
+              >
+                <AlertOctagon className="h-2.5 w-2.5" /> EOL
+              </span>
+            )}
           </div>
         </div>
         <ScoreBadge score={account.score} category={account.category} />
@@ -55,7 +63,13 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
       <div className="grid grid-cols-3 gap-3 text-xs">
         <Stat label="Device Age" value={`${account.deviceAgeYears.toFixed(1)} yrs`} />
         <Stat label="Utilization" value={formatPct(account.utilizationPct)} />
-        <Stat label="Budget" value={formatCurrencyShort(account.itBudgetUSD)} />
+        <Stat label="IT Budget" value={formatCurrencyShort(account.itBudgetUSD)} />
+        <Stat label="Storage" value={account.storageCapacityTB ? `${account.storageCapacityTB} TB` : "—"} />
+        <Stat label="Annual Rev" value={account.annualRevenue ? formatCurrencyShort(account.annualRevenue) : "—"} />
+        <Stat label="Company Size" value={account.companySize || "—"} />
+        <Stat label="Device Model" value={account.deviceModel || "—"} />
+        <Stat label="Sales Rep" value={account.salesRep || "—"} />
+        <Stat label="Last Contact" value={formatDate(account.lastContactDate)} />
       </div>
 
       <div className="flex items-center justify-between text-sm">
@@ -73,18 +87,16 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
+          className="cursor-pointer"
           onClick={() => modals.startCreatePlan(account)}
           style={{ backgroundColor: "var(--primary)", color: "white" }}
         >
           <Target className="mr-1 h-3.5 w-3.5" /> Create Action Plan
         </Button>
-        <Button size="sm" variant="outline" onClick={() => modals.openEmail(account)}>
+        <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => modals.openEmail(account)}>
           <Mail className="mr-1 h-3.5 w-3.5" /> Draft Email
         </Button>
-        <Button size="sm" variant="outline" onClick={() => modals.openPlan(account)}>
-          <ClipboardList className="mr-1 h-3.5 w-3.5" /> Quick Plan
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => openAccount(account.id)}>
+        <Button size="sm" variant="outline" className="cursor-pointer" onClick={() => openAccount(account.id)}>
           <StickyNote className="mr-1 h-3.5 w-3.5" /> Add Note
         </Button>
       </div>
@@ -94,9 +106,9 @@ export function AccountCard({ account }: { account: ScoredAccount }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div>
-      <div className="text-muted-foreground">{label}</div>
-      <div className="font-semibold text-foreground">{value}</div>
+    <div className="min-w-0">
+      <div className="truncate text-muted-foreground">{label}</div>
+      <div className="truncate font-semibold text-foreground">{value}</div>
     </div>
   );
 }

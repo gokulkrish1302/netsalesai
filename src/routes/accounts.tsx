@@ -61,7 +61,7 @@ function AccountsPage() {
     if (industries.length) list = list.filter((a) => industries.includes(a.industry));
     if (regions.length) list = list.filter((a) => regions.includes(a.region));
     if (sourceFilter !== "all") {
-      list = list.filter((a) => (a.dataSource ?? "active_iq") === sourceFilter);
+      list = list.filter((a) => (a.dataSource ?? "excel_import") === sourceFilter);
     }
     return list;
   }, [scoredAccounts, industries, regions, sourceFilter, overrides]);

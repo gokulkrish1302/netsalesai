@@ -98,6 +98,8 @@ export function VoiceAssistantButton() {
     if (!trimmed) return;
     setInterim("");
     setTextInput("");
+    // Stop any in-flight TTS before producing a new response
+    window.speechSynthesis?.cancel();
 
     // Snapshot history BEFORE adding the new user message (so we don't double-send it)
     const historySnapshot = messages.map((m) => ({ role: m.role, content: m.content }));

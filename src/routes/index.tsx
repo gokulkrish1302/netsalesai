@@ -51,6 +51,7 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const { rep, user } = useAuth();
   const { scoredAccounts } = useApp();
+  const modals = useModals();
   const { active, updateLayout } = useDashboards();
   const layout = active?.layout ?? DEFAULT_LAYOUT;
   const [selectedId, setSelectedId] = useState<string | null>(null);

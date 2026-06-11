@@ -1,0 +1,2 @@
+DELETE FROM public.accounts a USING public.accounts b WHERE a.ctid < b.ctid AND a.rep_email = b.rep_email AND a.customer_id = b.customer_id;
+ALTER TABLE public.accounts ADD CONSTRAINT accounts_rep_email_customer_id_key UNIQUE (rep_email, customer_id);

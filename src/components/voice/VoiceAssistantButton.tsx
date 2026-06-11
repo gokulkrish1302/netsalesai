@@ -57,6 +57,15 @@ export function VoiceAssistantButton() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, interim, status]);
 
+  // Warm up the voice list (Chrome loads voices async)
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.getVoices();
+    const handler = () => window.speechSynthesis.getVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", handler);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", handler);
+  }, []);
+
   function pickVoice(): SpeechSynthesisVoice | null {
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return null;

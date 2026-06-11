@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Loader2, Volume2, X, Send, Trash2, MessageSquare } from "lucide-react";
+import { Mic, Loader2, Volume2, VolumeX, X, Send, Trash2, MessageSquare } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { askVoiceAssistant } from "@/lib/voiceAssistant.functions";
@@ -57,16 +57,40 @@ export function VoiceAssistantButton() {
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, interim, status]);
 
+  function pickVoice(): SpeechSynthesisVoice | null {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return null;
+    const en = voices.filter((v) => v.lang?.toLowerCase().startsWith("en"));
+    const preferred = [
+      "Google US English",
+      "Microsoft Aria Online (Natural) - English (United States)",
+      "Microsoft Jenny Online (Natural) - English (United States)",
+      "Samantha",
+    ];
+    for (const name of preferred) {
+      const match = en.find((v) => v.name === name);
+      if (match) return match;
+    }
+    return en.find((v) => /natural|neural|enhanced/i.test(v.name)) ?? en[0] ?? voices[0];
+  }
+
   function speak(text: string) {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 1.05;
-    utter.pitch = 1;
+    const voice = pickVoice();
+    if (voice) utter.voice = voice;
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
     utter.onend = () => setStatus("idle");
     utter.onerror = () => setStatus("idle");
     setStatus("speaking");
     window.speechSynthesis.speak(utter);
+  }
+
+  function stopSpeaking() {
+    window.speechSynthesis?.cancel();
+    if (status === "speaking") setStatus("idle");
   }
 
   async function submit(text: string) {

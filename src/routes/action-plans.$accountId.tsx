@@ -180,7 +180,7 @@ function ActionPlanDetail() {
   if (account && !plan) {
     return (
       <div className="app-card flex flex-col items-center gap-4 p-12 text-center">
-        <Sparkles className="h-10 w-10 text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">Creating sales room and recommendations for {account.accountName}…</p>
       </div>
     );

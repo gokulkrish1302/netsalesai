@@ -238,24 +238,41 @@ function ActionPlanDetail() {
     }
   };
 
-  function addStakeholder(e: React.FormEvent) {
+  async function addStakeholder(e: React.FormEvent) {
     e.preventDefault();
     if (!shName.trim()) return;
-    setStakeholders((arr) => [
-      ...arr,
+    const next = [
+      ...stakeholders,
       { id: `st-${Date.now()}`, name: shName.trim(), role: shRole.trim() || "Stakeholder", email: shEmail.trim() },
-    ]);
+    ];
+    setStakeholders(next);
     setShName(""); setShRole(""); setShEmail("");
+    await persistExtras({ stakeholders: next });
     toast.success("Stakeholder added");
   }
 
-  function addFile(e: React.FormEvent) {
+  async function removeStakeholder(id: string) {
+    const next = stakeholders.filter((s) => s.id !== id);
+    setStakeholders(next);
+    await persistExtras({ stakeholders: next });
+  }
+
+  async function addFile(e: React.FormEvent) {
     e.preventDefault();
     if (!fileName.trim() || !fileUrl.trim()) return;
-    setFiles((arr) => [...arr, { id: `f-${Date.now()}`, name: fileName.trim(), url: fileUrl.trim() }]);
+    const next = [...files, { id: `f-${Date.now()}`, name: fileName.trim(), url: fileUrl.trim() }];
+    setFiles(next);
     setFileName(""); setFileUrl("");
+    await persistExtras({ files: next });
     toast.success("File link saved");
   }
+
+  async function removeFile(id: string) {
+    const next = files.filter((f) => f.id !== id);
+    setFiles(next);
+    await persistExtras({ files: next });
+  }
+
 
   const sourceTs = account.sourceTimestamp ? formatDate(account.sourceTimestamp) : "—";
   const isClosed = plan.status === "won" || plan.status === "lost";

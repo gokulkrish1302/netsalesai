@@ -424,24 +424,30 @@ export function VoiceAssistantButton() {
         aria-label="Voice assistant"
         title="Voice assistant"
         className={cn(
-          "fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          "group fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-xl ring-1 ring-white/20 transition-transform hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           status === "listening" && "animate-pulse",
         )}
         style={{
-          backgroundColor:
+          background:
             status === "listening"
-              ? "var(--destructive)"
-              : status === "thinking" || status === "speaking"
-                ? "var(--muted-foreground)"
-                : "var(--primary)",
+              ? "linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)"
+              : status === "thinking"
+                ? "linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%)"
+                : status === "speaking"
+                  ? "linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)"
+                  : "conic-gradient(from 220deg at 50% 50%, #6366f1, #8b5cf6, #ec4899, #f59e0b, #6366f1)",
+          boxShadow:
+            "0 10px 30px -10px rgba(139, 92, 246, 0.55), 0 0 0 1px rgba(255,255,255,0.08) inset",
         }}
       >
         {status === "thinking" ? (
           <Loader2 className="h-6 w-6 animate-spin" />
+        ) : status === "listening" ? (
+          <AudioLines className="h-6 w-6" />
         ) : status === "speaking" ? (
           <Volume2 className="h-6 w-6" />
         ) : (
-          <Mic className="h-6 w-6" />
+          <Sparkles className="h-6 w-6 drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]" />
         )}
       </button>
     </>

@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UploadCloud, FileSpreadsheet, Download, X, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { parseAccountsWorkbook, buildTemplateWorkbook, type ImportResult } from "@/lib/importAccounts";
+import { saveImportedAccounts } from "@/lib/imports.client";
 import { CATEGORY_META, scoreAccount } from "@/lib/scoring";
 import { formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,8 @@ interface StagedFile {
 }
 
 export function InlineImporter() {
-  const { addImportedAccounts } = useApp();
+  const { rep } = useAuth();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
   const [dragging, setDragging] = useState(false);

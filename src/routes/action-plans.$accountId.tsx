@@ -32,12 +32,15 @@ import {
 import {
   URGENCY_LABEL,
   buildAccountSummary,
-  buildIndustryObjections,
-  buildUrgencyTimeline,
   estimateDealSize,
   suggestNextStep,
 } from "@/lib/actionPlans";
-import { buildActionPlan } from "@/lib/actionPlans";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  getOrGenerateActionPlan,
+  regenerateActionPlan,
+} from "@/lib/actionPlan.functions";
 import { formatCurrencyShort, formatDate } from "@/lib/format";
 import type { ActionPlanStatus, ScoredAccount, Urgency } from "@/lib/types";
 import { cn } from "@/lib/utils";

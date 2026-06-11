@@ -49,7 +49,7 @@ export function AccountDetailPanel() {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && openAccount(null)}>
-      <SheetContent className="w-full overflow-y-auto p-0 sm:max-w-[560px]">
+      <SheetContent data-tour="account-detail" className="w-full overflow-y-auto p-0 sm:max-w-[560px]">
         {a && (
           <div className="flex flex-col">
             <SheetHeader className="border-b p-5">
@@ -173,7 +173,7 @@ export function AccountDetailPanel() {
               </section>
 
               <div className="border-t pt-4">
-                <Button className="w-full" size="lg" onClick={() => startCreatePlan(a)}>
+                <Button data-tour="action-plan-btn" className="w-full" size="lg" onClick={() => startCreatePlan(a)}>
                   Move to Action Plan <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <p className="mt-2 text-center text-[11px] text-muted-foreground">

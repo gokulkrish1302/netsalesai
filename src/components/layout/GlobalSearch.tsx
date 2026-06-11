@@ -30,7 +30,7 @@ export function GlobalSearch() {
   }
 
   return (
-    <div ref={ref} className="relative w-full">
+    <div ref={ref} data-tour="global-search" className="relative w-full">
       <div
         className="flex h-11 items-center gap-3 rounded-full bg-surface-2 px-4 transition-shadow focus-within:bg-card focus-within:shadow-md"
         style={{ backgroundColor: "var(--surface-2)" }}

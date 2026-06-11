@@ -516,7 +516,9 @@ function ActionPlanDetail() {
           )}
 
           {aiPlanQuery.isLoading && (
-            <div className="app-card p-5 text-sm text-muted-foreground">Loading playbook…</div>
+            <div className="app-card flex items-center gap-3 p-5 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Generating tailored playbook…
+            </div>
           )}
 
           {planContent && (

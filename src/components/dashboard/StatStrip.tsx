@@ -71,7 +71,7 @@ export function StatStrip({ accounts, kpis }: Props = {}) {
   const stats = selected.map((k) => ({ key: k, ...CATALOG[k] }));
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div data-tour="stat-strip" className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {stats.map((s) => {
         const Icon = s.icon;
         return (

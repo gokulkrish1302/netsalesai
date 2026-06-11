@@ -185,6 +185,7 @@ export type Database = {
           id: string
           last_login_at: string | null
           name: string
+          onboarded_at: string | null
           region: string
         }
         Insert: {
@@ -195,6 +196,7 @@ export type Database = {
           id: string
           last_login_at?: string | null
           name: string
+          onboarded_at?: string | null
           region: string
         }
         Update: {
@@ -205,6 +207,7 @@ export type Database = {
           id?: string
           last_login_at?: string | null
           name?: string
+          onboarded_at?: string | null
           region?: string
         }
         Relationships: []

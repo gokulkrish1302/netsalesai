@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, RefreshCw, Upload } from "lucide-react";
+import { LogOut, RefreshCw, Upload, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "./GlobalSearch";
 import { toast } from "sonner";
@@ -57,10 +57,21 @@ export function TopBar() {
         size="sm"
         onClick={sync}
         disabled={syncing}
+        data-tour="sync-btn"
         className="pill h-10 gap-2 px-4"
       >
         <RefreshCw className={`h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
         <span className="hidden sm:inline">Sync</span>
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => window.dispatchEvent(new CustomEvent("netapp:start-tour"))}
+        aria-label="Replay tour"
+        title="Replay tour"
+        className="h-10 w-10 rounded-full"
+      >
+        <HelpCircle className="h-4 w-4" />
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

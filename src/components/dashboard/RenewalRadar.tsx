@@ -15,7 +15,7 @@ export function RenewalRadar({ accounts }: { accounts?: ScoredAccount[] } = {}) 
   const urgentCount = scoredAccounts.filter((a) => a.contractRenewalDays <= 60).length;
 
   return (
-    <div className="app-card flex flex-col p-5">
+    <div data-tour="renewal-radar" className="app-card flex flex-col p-5">
       <div className="mb-4 flex items-center gap-2">
         <div
           className="flex h-7 w-7 items-center justify-center rounded-full"

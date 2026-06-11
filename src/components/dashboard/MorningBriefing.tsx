@@ -80,7 +80,7 @@ export function MorningBriefing() {
     (rep?.name || user?.email?.split("@")[0] || "there").split(/[\s.]+/)[0].replace(/^./, (c) => c.toUpperCase());
 
   return (
-    <Card className="overflow-hidden border-[color:var(--border)]/60">
+    <Card data-tour="morning-briefing" className="overflow-hidden border-[color:var(--border)]/60">
       <div
         className="flex items-center justify-between gap-3 px-5 py-3"
         style={{

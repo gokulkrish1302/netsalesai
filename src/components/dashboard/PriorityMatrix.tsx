@@ -48,7 +48,7 @@ export function PriorityMatrix({ accounts }: { accounts?: ScoredAccount[] } = {}
 
   return (
     <TooltipProvider>
-      <div className="app-card flex flex-col p-5" style={{ minHeight: 520 }}>
+      <div data-tour="priority-matrix" className="app-card flex flex-col p-5" style={{ minHeight: 520 }}>
         <div className="mb-1 flex items-center gap-2">
           <h2 className="display flex-1 text-lg">Opportunity matrix</h2>
           <UITooltip>

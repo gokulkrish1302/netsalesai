@@ -21,7 +21,7 @@ export function RankedAccountsList({ accounts, onSelect, selectedId }: Props) {
   };
 
   return (
-    <div className="app-card flex h-[520px] flex-col p-5">
+    <div data-tour="ranked-list" className="app-card flex h-[520px] flex-col p-5">
       <div className="mb-3 flex items-baseline justify-between">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Ranked Accounts</h3>
         <span className="text-xs text-muted-foreground">{ranked.length} active</span>

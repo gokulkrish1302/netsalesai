@@ -18,6 +18,7 @@ import { RouteGate, useIsAuthRoute } from "@/components/auth/RouteGate";
 import { ModalsProvider } from "@/components/modals/ModalsProvider";
 import { AccountDetailPanel } from "@/components/detail/AccountDetailPanel";
 import { Toaster } from "@/components/ui/sonner";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -101,6 +102,7 @@ function AppShell() {
               </main>
             </div>
             <AccountDetailPanel />
+            <OnboardingTour />
           </div>
         </ModalsProvider>
       </DashboardsProvider>

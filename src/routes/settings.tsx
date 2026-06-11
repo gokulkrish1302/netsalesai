@@ -1,17 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useApp } from "@/state/AppStore";
 import { DEFAULT_WEIGHTS } from "@/lib/scoring";
 import type { Weights } from "@/lib/types";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { ScorePill } from "@/components/common/ScoreBadge";
 import { useAuth } from "@/state/AuthContext";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Sliders, BarChart3, Users, RefreshCw } from "lucide-react";
+import { Sliders, BarChart3, Users, RefreshCw, Trash2 } from "lucide-react";
 import { ActiveIqSync } from "@/components/settings/ActiveIqSync";
+import { clearMyAccountData } from "@/lib/settings.functions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/settings")({
   head: () => ({
@@ -192,7 +204,86 @@ function SettingsPage() {
             </AccordionContent>
           </AccordionItem>
         )}
+
+        <AccordionItem value="danger" className="app-card border-0 px-5">
+          <AccordionTrigger className="py-4 hover:no-underline">
+            <SectionHeader
+              icon={<Trash2 className="h-4 w-4" />}
+              title="Danger zone"
+              description="Permanently delete all your account data."
+            />
+          </AccordionTrigger>
+          <AccordionContent className="pb-5">
+            <DangerZone />
+          </AccordionContent>
+        </AccordionItem>
       </Accordion>
+    </div>
+  );
+}
+
+function DangerZone() {
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const clearData = useServerFn(clearMyAccountData);
+
+  async function onConfirm() {
+    setBusy(true);
+    try {
+      const res = await clearData();
+      toast.success(
+        `Cleared ${res.deletedAccounts} accounts, ${res.deletedPlans} action plans, ${res.deletedActivity} activity logs, ${res.deletedSyncRuns} sync runs.`,
+      );
+      window.dispatchEvent(new CustomEvent("netapp:accounts-changed"));
+      setOpen(false);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to clear data");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
+      <h3 className="text-sm font-semibold text-destructive">Clear all my account data</h3>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Deletes all your accounts, cached AI action plans, activity logs, and sync history.
+        Your scoring weights, dashboards, and team membership are preserved. This cannot be undone.
+      </p>
+      <Button
+        variant="destructive"
+        size="sm"
+        className="mt-4 gap-2"
+        onClick={() => setOpen(true)}
+      >
+        <Trash2 className="h-4 w-4" />
+        Clear all my account data
+      </Button>
+
+      <AlertDialog open={open} onOpenChange={setOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete all your account data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes your accounts, AI-generated action plans, activity logs,
+              and sync runs. Settings, dashboards, and your sign-in are preserved. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={busy}
+              onClick={(e) => {
+                e.preventDefault();
+                void onConfirm();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {busy ? "Deleting…" : "Delete everything"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

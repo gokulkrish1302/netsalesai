@@ -35,12 +35,13 @@ import {
   estimateDealSize,
   suggestNextStep,
 } from "@/lib/actionPlans";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
   getOrGenerateActionPlan,
   regenerateActionPlan,
 } from "@/lib/actionPlan.functions";
+import { getPlanExtras, savePlanExtras } from "@/lib/planExtras.functions";
 import { formatCurrencyShort, formatDate } from "@/lib/format";
 import type { ActionPlanStatus, ScoredAccount, Urgency } from "@/lib/types";
 import { cn } from "@/lib/utils";

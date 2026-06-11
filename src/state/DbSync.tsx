@@ -79,9 +79,10 @@ const ACCOUNT_COLUMNS =
  */
 export function DbSync() {
   const { rep, isAdmin } = useAuth();
-  const { state, setAccounts, setWeights } = useApp();
+  const { state, setAccounts, setWeights, removePlan } = useApp();
   const lastWeightsKey = useRef<string>("");
   const initialWeightsLoaded = useRef(false);
+  const plansReconciled = useRef(false);
 
   const refresh = useCallback(async () => {
     if (!rep) return;
@@ -97,6 +98,7 @@ export function DbSync() {
       return;
     }
     initialWeightsLoaded.current = false;
+    plansReconciled.current = false;
     (async () => {
       await refresh();
       const { data: w } = await supabase
@@ -111,6 +113,19 @@ export function DbSync() {
         lastWeightsKey.current = JSON.stringify(state.weights);
       }
       initialWeightsLoaded.current = true;
+
+      // Reconcile local action plans with DB — drop any stale localStorage plans
+      // for accounts the signed-in rep no longer has a row for in account_action_plans.
+      const { data: dbPlans } = await supabase
+        .from("account_action_plans")
+        .select("account_id");
+      const dbIds = new Set((dbPlans ?? []).map((p) => p.account_id));
+      for (const accountId of Object.keys(state.actionPlans)) {
+        if (!dbIds.has(accountId)) {
+          removePlan(accountId);
+        }
+      }
+      plansReconciled.current = true;
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rep, isAdmin]);

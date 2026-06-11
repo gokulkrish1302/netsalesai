@@ -1,56 +1,66 @@
 ## Goal
 
-Make Excel imports permanent in Supabase, remove all mock data, and show a friendly empty state for new reps.
+Stop hardcoding the action plan in `src/lib/actionPlans.ts`. Generate the full plan (executive summary, recommended products, talking points, outreach timeline, ROI copy, industry objections) with Lovable AI per account, cache the result in Supabase, and let the rep regenerate on demand.
 
-## 1. Persist Excel imports to Supabase
+## 1. Database — cache table
 
-When the rep clicks **Populate** in `InlineImporter` (and `ImportAccountsModal`), upsert each selected account into `public.accounts` with `rep_email = current rep`.
+New table `public.account_action_plans` (one row per account, owned by the rep):
 
-Mapping `Account` → `accounts` columns:
-- `account_name`, `industry`, `region`, `device_age`, `storage_utilization` (= utilizationPct), `it_budget` (= itBudgetUSD), `renewal_days` (= contractRenewalDays), `cloud_status`, `data_source = 'excel_import'`, `last_synced_at = now()`, `netapp_models`, `ontap_version`, `cluster_count`, `storage_architecture`, `score`, `priority_badge`, `status` (= pipelineStage).
-- `customer_id = 'excel:' + sha1(filename + accountName)` so re-importing the same row updates instead of duplicating (uses existing `accounts_rep_customer_uniq` index).
-- New column `import_filename text` on `accounts` so the ImportHistory list can group/delete by file.
+- `account_id uuid` (FK → `accounts.id`, on delete cascade) — primary key
+- `rep_email text not null`
+- `plan jsonb not null` — full `ActionPlan` shape (summary, products[], talkingPoints[], timeline[], roiLow/High/Pct, objections[])
+- `model text not null` — e.g. `google/gemini-3-flash-preview`
+- `inputs_hash text not null` — sha1 of the account fields fed to the model, so we can detect when an account has changed
+- `created_at`, `updated_at` (with the existing `update_updated_at_column` trigger)
 
-Implementation:
-- Migration: `ALTER TABLE public.accounts ADD COLUMN import_filename text;` (no new table needed).
-- New file `src/lib/imports.functions.ts` with two server functions guarded by `requireSupabaseAuth`:
-  - `saveImportedAccounts({ filename, accounts })` → upsert rows for the caller's rep_email (resolved via `current_rep_email()` SELECT or by passing the email from context).
-  - `deleteImportedFile({ filename })` → delete all accounts where `rep_email = me AND import_filename = filename`.
-- `InlineImporter.populate()` and `ImportAccountsModal` call `saveImportedAccounts`; on success they trigger a DbSync refresh (see §3) instead of `addImportedAccounts`.
-- `ImportHistory` (currently driven by localStorage `state.importHistory`) now derives its list from the loaded DB accounts: group `scoredAccounts` by `import_filename` (only rows whose `dataSource === 'excel_import'`). The Trash button calls `deleteImportedFile`.
+RLS: a rep can select/insert/update/delete only rows where `rep_email = current_rep_email()`. Service role full access. GRANTs to `authenticated` + `service_role`.
 
-## 2. Remove all hardcoded mock data
+## 2. Server functions — `src/lib/actionPlan.functions.ts`
 
-In `src/state/AppStore.tsx`:
-- Delete the `import { MOCK_ACCOUNTS } from "@/lib/mockAccounts"` and stop merging it into `accountsWithStages`. Accounts come only from `state.importedAccounts` (which DbSync hydrates from Supabase).
-- Remove `importedAccounts` and `importHistory` from the localStorage snapshot — accounts are server-owned now. Keep weights / notes / call logs / action plans / deprioritized in localStorage as today (they're UI state, not the user's concern).
-- Keep `mockAccounts.ts` file untouched on disk but unreferenced (safer than mass-deleting; can prune later).
+Both guarded by `requireSupabaseAuth` and the rep is resolved via `current_rep_email()`.
 
-## 3. DbSync becomes the single source of truth
+- `getOrGenerateActionPlan({ accountId })`
+  1. Load the account row, verify it belongs to the caller.
+  2. Compute `inputs_hash` from the scoring-relevant fields (name, industry, region, device model/age, utilization, IT budget, renewal days, category, score, cloud status, ontap/version, models).
+  3. Look up the cached row. If it exists **and** `inputs_hash` matches, return `plan` immediately.
+  4. Otherwise call Lovable AI Gateway via the existing `src/lib/ai-gateway.server.ts` helper using `google/gemini-3-flash-preview` with `Output.object({ schema })` (Zod) so we get a typed JSON `ActionPlan` back. System prompt = "You are a NetApp enterprise storage sales strategist…". User prompt = a compact account brief built from the row.
+  5. Upsert into `account_action_plans` and return the new plan.
+  - On gateway 402 / 429 / failure: surface a clear error string; the UI falls back to a "Regenerate" prompt (no silent hardcoded fallback).
 
-Rewrite `src/state/DbSync.tsx` so it:
-- On rep change, fetches `accounts` for the current rep (or all, for admins), maps with `rowToAccount`, and **replaces** the in-memory list via a new `setAccounts(accounts: Account[])` action (replacing the current additive `addImportedAccounts`).
-- Subscribes to a `netapp:accounts-changed` window event dispatched after import / delete / Active IQ sync, and re-fetches.
-- Updated `rowToAccount` reads the real `industry`, `region`, and `import_filename` columns instead of hardcoding `"Tech"` / `"West"`.
+- `regenerateActionPlan({ accountId })` — same as above but skips the cache hit and always calls the model.
 
-AppStore gains a `SET_ACCOUNTS` action + `setAccounts` callback used only by DbSync.
+The Zod schema mirrors the existing `ActionPlan` interface so the rest of the UI stays unchanged.
 
-## 4. Empty state
+## 3. UI wiring
 
-In `src/routes/index.tsx` and `src/routes/accounts.tsx`, when `scoredAccounts.length === 0`, render a single centered card instead of the widgets / board:
+- `src/lib/actionPlans.ts`
+  - Delete `buildActionPlan`, `buildIndustryObjections`, `INDUSTRY_OBJECTIONS`, the per-category hardcoded blocks, and `buildUrgencyTimeline`'s fixed action strings.
+  - Keep `URGENCY_LABEL`, `estimateDealSize`, `suggestNextStep`, the `ActionPlan` type, and the `buildAccountSummary` helper signature (still useful as a fallback skeleton when a plan hasn't been generated yet, e.g. shows just numeric facts).
+  - Add a tiny `emptyPlan()` placeholder used only while loading.
 
-> **Welcome to NetApp Cloud Compass.** Import your accounts via Excel or sync with Active IQ to get started.
+- `src/components/modals/ActionPlanModal.tsx`
+  - On open, call `getOrGenerateActionPlan` via `useServerFn` + `useQuery` keyed by `accountId`.
+  - States: loading (skeleton), error (message + Retry), success (renders `plan` exactly as today).
+  - Add a "Regenerate" button next to Copy/Print that calls `regenerateActionPlan` and invalidates the query.
 
-Card includes two buttons: **Import Excel** (opens import modal) and **Go to Imports** (navigates to `/imports`). The dashboard heading + MorningBriefing still render above it.
+- `src/routes/action-plans.$accountId.tsx`
+  - Same `useQuery` for the plan; the Playbook tab (talking points / objections / timeline) reads from the AI plan instead of `buildActionPlan(...)` / `buildIndustryObjections(...)` / `buildUrgencyTimeline(...)`.
+  - The Overview tab keeps `buildAccountSummary` + `estimateDealSize` as deterministic numeric facts, but also shows the AI executive summary above them.
+  - Loading skeleton inside each section; error block with Retry.
 
-## Out of scope
+## 4. Out of scope
 
-- No changes to scoring, Active IQ sync logic, or styling/colors.
-- Action plans, notes, call logs stay in localStorage (UI scratch state, not the user's account data).
-- No bulk migration of existing localStorage imports — once this ships, reps re-import from Excel; their old in-browser data is replaced by what's in Supabase.
+- No changes to scoring, urgency selection, deal-size math, suggestNextStep heuristics, stakeholders/files/activity tabs, or styling.
+- No background pre-generation — plans are generated on first open per account, then cached until the account's inputs change.
 
 ## Files
 
-- **Migration:** add `import_filename` column to `accounts`.
-- **New:** `src/lib/imports.functions.ts`.
-- **Edited:** `src/state/AppStore.tsx`, `src/state/DbSync.tsx`, `src/components/imports/InlineImporter.tsx`, `src/components/modals/ImportAccountsModal.tsx`, `src/components/accounts/ImportHistory.tsx`, `src/routes/index.tsx`, `src/routes/accounts.tsx`.
+- **Migration:** create `public.account_action_plans` + RLS + grants.
+- **New:** `src/lib/actionPlan.functions.ts` (server functions + Zod schema + prompt builder).
+- **Edited:** `src/lib/actionPlans.ts` (strip hardcoded content, keep helpers), `src/components/modals/ActionPlanModal.tsx`, `src/routes/action-plans.$accountId.tsx`.
+
+## Cost / behaviour notes
+
+- Model: `google/gemini-3-flash-preview` (fast, low credit usage).
+- ~1 generation per account per meaningful change, served from cache otherwise. Rep can force a refresh with the Regenerate button.
+- Failures surface as in-UI errors (no silent fallback to the old hardcoded templates, so the user always knows when AI is unavailable).

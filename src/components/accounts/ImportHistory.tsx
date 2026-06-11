@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { deleteImportedFile } from "@/lib/imports.client";
 
 export function ImportHistory({ onImportClick, defaultOpen = false }: { onImportClick: () => void; defaultOpen?: boolean }) {
-  const { state, removeImportRecord } = useApp();
+  const { state } = useApp();
+  const { rep } = useAuth();
+
   const [open, setOpen] = useState(defaultOpen);
   const records = state.importHistory;
   const total = records.reduce((s, r) => s + r.count, 0);

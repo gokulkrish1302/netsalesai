@@ -1,0 +1,2 @@
+ALTER TABLE public.accounts ADD COLUMN IF NOT EXISTS import_filename text;
+CREATE INDEX IF NOT EXISTS accounts_import_filename_idx ON public.accounts (rep_email, import_filename) WHERE import_filename IS NOT NULL;

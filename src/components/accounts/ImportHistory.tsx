@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, FileSpreadsheet, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/format";
 import { toast } from "sonner";
+import { deleteImportedFile } from "@/lib/imports.client";
 
 export function ImportHistory({ onImportClick, defaultOpen = false }: { onImportClick: () => void; defaultOpen?: boolean }) {
-  const { state, removeImportRecord } = useApp();
+  const { state } = useApp();
+  const { rep } = useAuth();
+
   const [open, setOpen] = useState(defaultOpen);
   const records = state.importHistory;
   const total = records.reduce((s, r) => s + r.count, 0);
@@ -64,14 +68,21 @@ export function ImportHistory({ onImportClick, defaultOpen = false }: { onImport
                     size="sm"
                     variant="ghost"
                     className="h-8 px-2 text-muted-foreground hover:text-[color:var(--hot)]"
-                    onClick={() => {
-                      removeImportRecord(r.id);
-                      toast.success(`Removed ${r.filename}`);
+                    onClick={async () => {
+                      if (!rep) return;
+                      try {
+                        await deleteImportedFile(rep.email, r.filename);
+                        toast.success(`Removed ${r.filename}`);
+                      } catch (err) {
+                        const msg = err instanceof Error ? err.message : "Unknown error";
+                        toast.error(`Failed to remove: ${msg}`);
+                      }
                     }}
                     aria-label={`Remove ${r.filename}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
+
                 </li>
               ))}
             </ul>

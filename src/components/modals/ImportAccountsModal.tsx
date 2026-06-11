@@ -3,8 +3,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { UploadCloud, FileSpreadsheet, Download, X, CheckCircle2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
-import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { parseAccountsWorkbook, buildTemplateWorkbook, type ImportResult } from "@/lib/importAccounts";
+import { saveImportedAccounts } from "@/lib/imports.client";
 import { CATEGORY_META, scoreAccount } from "@/lib/scoring";
 import { formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,8 @@ export function ImportAccountsModal({
   open: boolean;
   onOpenChange: (o: boolean) => void;
 }) {
-  const { addImportedAccounts } = useApp();
+  const { rep } = useAuth();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filename, setFilename] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
@@ -69,13 +71,23 @@ export function ImportAccountsModal({
     toast.success("Template downloaded");
   }
 
-  function confirmImport() {
+  async function confirmImport() {
     if (!result?.accounts.length) return;
-    addImportedAccounts(result.accounts, filename ?? undefined);
-    toast.success(`Imported ${result.accounts.length} account${result.accounts.length === 1 ? "" : "s"}`);
-    onOpenChange(false);
-    setTimeout(reset, 300);
+    if (!rep) {
+      toast.error("Sign in required to save accounts");
+      return;
+    }
+    try {
+      const count = await saveImportedAccounts(rep.email, filename ?? "Untitled import", result.accounts);
+      toast.success(`Imported ${count} account${count === 1 ? "" : "s"}`);
+      onOpenChange(false);
+      setTimeout(reset, 300);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to save accounts: ${msg}`);
+    }
   }
+
 
   return (
     <Dialog

@@ -1,11 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { supabase } from "@/integrations/supabase/client";
 import type { Account, CloudStatus, Industry, PipelineStage, Region } from "@/lib/types";
 
-// Map a DB row → Account shape used by the scoring engine.
-// DB stores a partial schema; sensible defaults fill the rest so scoring still runs.
 function rowToAccount(row: {
   id: string;
   account_name: string;
@@ -25,14 +23,17 @@ function rowToAccount(row: {
   risk_count_high?: number | null;
   risk_count_medium?: number | null;
   it_budget_estimated?: boolean | null;
+  industry?: string | null;
+  region?: string | null;
+  import_filename?: string | null;
 }): Account {
   const cloud = (row.cloud_status as CloudStatus | null) ?? ("none" as CloudStatus);
   return {
     id: row.id,
     accountName: row.account_name,
     salesRep: row.rep_email,
-    industry: "Tech" as Industry,
-    region: "West" as Region,
+    industry: ((row.industry as Industry | null) ?? "Tech") as Industry,
+    region: ((row.region as Region | null) ?? "West") as Region,
     companySize: "—",
     deviceModel: (row.netapp_models?.[0] ?? "—"),
     deviceAgeYears: Number(row.device_age ?? 0),
@@ -45,7 +46,7 @@ function rowToAccount(row: {
     annualRevenue: 0,
     lastContactDate: null,
     pipelineStage: (row.status as PipelineStage) ?? "not_contacted",
-    dataSource: (row.data_source as "active_iq" | "excel_import" | null) ?? "active_iq",
+    dataSource: (row.data_source as "active_iq" | "excel_import" | null) ?? "excel_import",
     sourceTimestamp: row.last_synced_at ?? new Date().toISOString(),
     netappModels: row.netapp_models ?? undefined,
     ontapVersion: row.ontap_version ?? undefined,
@@ -55,52 +56,45 @@ function rowToAccount(row: {
     riskCountMedium: row.risk_count_medium ?? undefined,
     itBudgetEstimated: row.it_budget_estimated ?? undefined,
     lastSyncedAt: row.last_synced_at ?? undefined,
+    importFilename: row.import_filename ?? undefined,
   };
 }
 
+const ACCOUNT_COLUMNS =
+  "id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email, cloud_status, data_source, last_synced_at, netapp_models, ontap_version, cluster_count, storage_architecture, risk_count_high, risk_count_medium, it_budget_estimated, industry, region, import_filename";
+
 /**
- * Bridges Supabase data into the in-memory AppStore for the signed-in rep:
- * - Loads accounts (filtered to rep_email by RLS). Empty result = keep mock fallback.
- * - Loads stored scoring weights; persists changes back.
- * - Mirrors call logs / notes into the `activity` table.
+ * Bridges Supabase data into the in-memory AppStore for the signed-in rep.
+ * Accounts in the store are a mirror of public.accounts filtered by rep_email
+ * (RLS). Listens for "netapp:accounts-changed" to refetch after writes.
  */
 export function DbSync() {
   const { rep, isAdmin } = useAuth();
-  const {
-    state,
-    scoredAccounts,
-    addImportedAccounts,
-    setWeights,
-  } = useApp();
+  const { state, setAccounts, setWeights } = useApp();
   const lastWeightsKey = useRef<string>("");
   const initialWeightsLoaded = useRef(false);
-  const loadedForEmail = useRef<string | null>(null);
 
-  // Load DB accounts + weights once per rep (admins load every rep's accounts)
-  useEffect(() => {
+  const refresh = useCallback(async () => {
     if (!rep) return;
-    const key = `${rep.email}|${isAdmin ? "admin" : "rep"}`;
-    if (loadedForEmail.current === key) return;
-    loadedForEmail.current = key;
+    const q = supabase.from("accounts").select(ACCOUNT_COLUMNS);
+    const { data } = await (isAdmin ? q : q.eq("rep_email", rep.email));
+    setAccounts((data ?? []).map(rowToAccount));
+  }, [rep, isAdmin, setAccounts]);
+
+  // Load DB accounts + weights on rep change
+  useEffect(() => {
+    if (!rep) {
+      setAccounts([]);
+      return;
+    }
     initialWeightsLoaded.current = false;
-
     (async () => {
-      const acctsQuery = supabase
-        .from("accounts")
-        .select("id, account_name, device_age, storage_utilization, it_budget, renewal_days, status, rep_email, cloud_status, data_source, last_synced_at, netapp_models, ontap_version, cluster_count, storage_architecture, risk_count_high, risk_count_medium, it_budget_estimated");
-      const [{ data: accts }, { data: w }] = await Promise.all([
-        isAdmin ? acctsQuery : acctsQuery.eq("rep_email", rep.email),
-        supabase
-          .from("rep_weights")
-          .select("weights")
-          .eq("rep_email", rep.email)
-          .maybeSingle(),
-      ]);
-
-      if (accts && accts.length > 0) {
-        const mapped = accts.map(rowToAccount);
-        addImportedAccounts(mapped);
-      }
+      await refresh();
+      const { data: w } = await supabase
+        .from("rep_weights")
+        .select("weights")
+        .eq("rep_email", rep.email)
+        .maybeSingle();
       if (w?.weights) {
         setWeights(w.weights as unknown as typeof state.weights);
         lastWeightsKey.current = JSON.stringify(w.weights);
@@ -109,7 +103,16 @@ export function DbSync() {
       }
       initialWeightsLoaded.current = true;
     })();
-  }, [rep, isAdmin, addImportedAccounts, setWeights, state.weights]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rep, isAdmin]);
+
+  // Listen for app-wide "accounts changed" events (imports, deletes, syncs)
+  useEffect(() => {
+    if (!rep) return;
+    const handler = () => { void refresh(); };
+    window.addEventListener("netapp:accounts-changed", handler);
+    return () => window.removeEventListener("netapp:accounts-changed", handler);
+  }, [rep, refresh]);
 
   // Persist weights on change (debounced)
   useEffect(() => {
@@ -134,7 +137,7 @@ export function DbSync() {
     const latest = all[0];
     if (!latest || latest.id === lastCallLogId.current) return;
     lastCallLogId.current = latest.id;
-    const acct = scoredAccounts.find((a) => a.id === latest.accountId);
+    const acct = state.accounts.find((a) => a.id === latest.accountId);
     if (!acct) return;
     supabase
       .from("activity")
@@ -146,7 +149,7 @@ export function DbSync() {
         rep_email: rep.email,
       })
       .then(() => {});
-  }, [state.callLogs, rep, scoredAccounts]);
+  }, [state.callLogs, rep, state.accounts]);
 
   return null;
 }

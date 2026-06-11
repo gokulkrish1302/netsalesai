@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UploadCloud, FileSpreadsheet, Download, X, AlertTriangle, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { useApp } from "@/state/AppStore";
+import { useAuth } from "@/state/AuthContext";
 import { parseAccountsWorkbook, buildTemplateWorkbook, type ImportResult } from "@/lib/importAccounts";
+import { saveImportedAccounts } from "@/lib/imports.client";
 import { CATEGORY_META, scoreAccount } from "@/lib/scoring";
 import { formatCurrencyShort } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -17,7 +18,8 @@ interface StagedFile {
 }
 
 export function InlineImporter() {
-  const { addImportedAccounts } = useApp();
+  const { rep } = useAuth();
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [parsing, setParsing] = useState(false);
   const [dragging, setDragging] = useState(false);
@@ -119,21 +121,28 @@ export function InlineImporter() {
     setSelected(new Set());
   }
 
-  function populate() {
+  async function populate() {
     if (selected.size === 0) return;
-    // Group selected accounts by their source file so each populated batch keeps its filename
+    if (!rep) {
+      toast.error("Sign in required to save accounts");
+      return;
+    }
     const byFile = new Map<string, { filename: string; accounts: Account[] }>();
     for (const s of staged) {
       const picked = s.result.accounts.filter((a) => selected.has(a.id));
       if (picked.length) byFile.set(s.id, { filename: s.filename, accounts: picked });
     }
     let total = 0;
-    for (const { filename, accounts } of byFile.values()) {
-      addImportedAccounts(accounts, filename);
-      total += accounts.length;
+    try {
+      for (const { filename, accounts } of byFile.values()) {
+        total += await saveImportedAccounts(rep.email, filename, accounts);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to save accounts: ${msg}`);
+      return;
     }
-    toast.success(`Populated ${total} account${total === 1 ? "" : "s"} to the tool`);
-    // Remove fully consumed files; keep partials with remaining accounts
+    toast.success(`Saved ${total} account${total === 1 ? "" : "s"} to your portfolio`);
     setStaged((prev) =>
       prev
         .map((s) => ({ ...s, result: { ...s.result, accounts: s.result.accounts.filter((a) => !selected.has(a.id)) } }))
@@ -141,6 +150,7 @@ export function InlineImporter() {
     );
     setSelected(new Set());
   }
+
 
   return (
     <div className="space-y-4">

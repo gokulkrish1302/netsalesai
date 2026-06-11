@@ -24,7 +24,7 @@ export function ActiveIqSync() {
       const next = await last();
       setInfo(next);
       // Refresh in-memory store with newly synced accounts
-      setTimeout(() => window.location.reload(), 800);
+      window.dispatchEvent(new CustomEvent("netapp:accounts-changed"));
     } catch (e) {
       toast.error("Sync failed — check your Active IQ token in Settings", { id: t });
       console.error(e);

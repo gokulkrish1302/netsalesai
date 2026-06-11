@@ -1,5 +1,4 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from "react";
-import { MOCK_ACCOUNTS } from "@/lib/mockAccounts";
 import { DEFAULT_WEIGHTS, scoreAll } from "@/lib/scoring";
 import type {
   Account,
@@ -49,8 +48,8 @@ interface AppState {
   stageHistory: Record<string, StageHistoryEntry[]>;
   notes: Record<string, { id: string; text: string; createdAt: string }[]>;
   callLogs: Record<string, CallLog[]>;
-  importedAccounts: Account[];
-  importHistory: ImportRecord[];
+  accounts: Account[]; // sourced from Supabase via DbSync; never persisted to localStorage
+  importHistory: ImportRecord[]; // derived from accounts (see useApp())
   deprioritized: Record<string, DeprioritizeEntry>;
   actionPlans: Record<string, ActionPlanEntry>;
   activeAccountId: string | null;
@@ -62,9 +61,7 @@ type Action =
   | { type: "SET_STAGE"; accountId: string; stage: PipelineStage }
   | { type: "ADD_NOTE"; accountId: string; text: string }
   | { type: "ADD_CALL_LOG"; log: CallLog }
-  | { type: "ADD_IMPORTED"; accounts: Account[]; filename?: string }
-  | { type: "REMOVE_IMPORTED"; id: string }
-  | { type: "REMOVE_IMPORT_RECORD"; recordId: string }
+  | { type: "SET_ACCOUNTS"; accounts: Account[] }
   | { type: "DEPRIORITIZE"; accountId: string; entry: DeprioritizeEntry }
   | { type: "UNDO_DEPRIORITIZE"; accountId: string }
   | { type: "CREATE_PLAN"; accountId: string; urgency: Urgency }
@@ -74,19 +71,12 @@ type Action =
   | { type: "REMOVE_PLAN"; accountId: string }
   | { type: "OPEN_ACCOUNT"; accountId: string | null };
 
-const LS_KEY = "netapp-cma-state-v4";
-const LS_LEGACY_KEYS = ["netapp-cma-state-v3", "netapp-cma-state-v2", "netapp-cma-state-v1"];
+const LS_KEY = "netapp-cma-state-v5";
 
 function loadPersisted(): Partial<AppState> {
   if (typeof window === "undefined") return {};
   try {
-    let raw = localStorage.getItem(LS_KEY);
-    if (!raw) {
-      for (const k of LS_LEGACY_KEYS) {
-        raw = localStorage.getItem(k);
-        if (raw) break;
-      }
-    }
+    const raw = localStorage.getItem(LS_KEY);
     if (!raw) return {};
     return JSON.parse(raw);
   } catch {
@@ -96,19 +86,14 @@ function loadPersisted(): Partial<AppState> {
 
 function initial(): AppState {
   const persisted = loadPersisted();
-  const pipelineStages: Record<string, PipelineStage> = { ...persisted.pipelineStages };
-  const imported = persisted.importedAccounts ?? [];
-  for (const a of [...MOCK_ACCOUNTS, ...imported]) {
-    if (!pipelineStages[a.id]) pipelineStages[a.id] = a.pipelineStage;
-  }
   return {
     weights: persisted.weights ?? DEFAULT_WEIGHTS,
-    pipelineStages,
+    pipelineStages: persisted.pipelineStages ?? {},
     stageHistory: persisted.stageHistory ?? {},
     notes: persisted.notes ?? {},
     callLogs: persisted.callLogs ?? {},
-    importedAccounts: imported,
-    importHistory: persisted.importHistory ?? [],
+    accounts: [],
+    importHistory: [],
     deprioritized: persisted.deprioritized ?? {},
     actionPlans: persisted.actionPlans ?? {},
     activeAccountId: null,
@@ -157,43 +142,12 @@ function reducer(state: AppState, action: Action): AppState {
         },
       };
     }
-    case "ADD_IMPORTED": {
+    case "SET_ACCOUNTS": {
       const nextStages = { ...state.pipelineStages };
       for (const a of action.accounts) {
         if (!nextStages[a.id]) nextStages[a.id] = a.pipelineStage;
       }
-      const record: ImportRecord = {
-        id: `imp-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        filename: action.filename ?? "Untitled import",
-        importedAt: new Date().toISOString(),
-        count: action.accounts.length,
-        accountIds: action.accounts.map((a) => a.id),
-      };
-      return {
-        ...state,
-        importedAccounts: [...action.accounts, ...state.importedAccounts],
-        importHistory: [record, ...state.importHistory],
-        pipelineStages: nextStages,
-      };
-    }
-    case "REMOVE_IMPORTED": {
-      return {
-        ...state,
-        importedAccounts: state.importedAccounts.filter((a) => a.id !== action.id),
-        importHistory: state.importHistory
-          .map((r) => ({ ...r, accountIds: r.accountIds.filter((x) => x !== action.id) }))
-          .map((r) => ({ ...r, count: r.accountIds.length })),
-      };
-    }
-    case "REMOVE_IMPORT_RECORD": {
-      const rec = state.importHistory.find((r) => r.id === action.recordId);
-      if (!rec) return state;
-      const removeIds = new Set(rec.accountIds);
-      return {
-        ...state,
-        importedAccounts: state.importedAccounts.filter((a) => !removeIds.has(a.id)),
-        importHistory: state.importHistory.filter((r) => r.id !== action.recordId),
-      };
+      return { ...state, accounts: action.accounts, pipelineStages: nextStages };
     }
     case "DEPRIORITIZE":
       return {
@@ -289,9 +243,7 @@ interface AppContextValue {
   setStage: (accountId: string, stage: PipelineStage) => void;
   addNote: (accountId: string, text: string) => void;
   addCallLog: (log: CallLog) => void;
-  addImportedAccounts: (accounts: Account[], filename?: string) => void;
-  removeImportedAccount: (id: string) => void;
-  removeImportRecord: (recordId: string) => void;
+  setAccounts: (accounts: Account[]) => void;
   deprioritize: (accountId: string, entry: DeprioritizeEntry) => void;
   undoDeprioritize: (accountId: string) => void;
   createPlan: (accountId: string, urgency: Urgency) => void;
@@ -303,14 +255,6 @@ interface AppContextValue {
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
-
-// Deterministic "synced X minutes ago" timestamp for mock accounts based on id
-function mockSyncedAt(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  const minutesAgo = (h % 240) + 5; // 5–245 minutes
-  return new Date(Date.now() - minutesAgo * 60_000).toISOString();
-}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, initial);
@@ -324,8 +268,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       stageHistory: state.stageHistory,
       notes: state.notes,
       callLogs: state.callLogs,
-      importedAccounts: state.importedAccounts,
-      importHistory: state.importHistory,
       deprioritized: state.deprioritized,
       actionPlans: state.actionPlans,
     };
@@ -336,21 +278,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
     state.stageHistory,
     state.notes,
     state.callLogs,
-    state.importedAccounts,
     state.deprioritized,
     state.actionPlans,
-    state.importHistory,
   ]);
 
   const accountsWithStages: Account[] = useMemo(
     () =>
-      [...MOCK_ACCOUNTS, ...state.importedAccounts].map((a) => ({
+      state.accounts.map((a) => ({
         ...a,
         pipelineStage: state.pipelineStages[a.id] ?? a.pipelineStage,
-        dataSource: a.dataSource ?? "active_iq",
-        sourceTimestamp: a.sourceTimestamp ?? mockSyncedAt(a.id),
+        dataSource: a.dataSource ?? "excel_import",
+        sourceTimestamp: a.sourceTimestamp ?? a.lastSyncedAt ?? new Date().toISOString(),
       })),
-    [state.pipelineStages, state.importedAccounts],
+    [state.pipelineStages, state.accounts],
   );
 
   const previousScoredAccounts = useMemo(
@@ -364,12 +304,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       state.weights,
       Object.fromEntries(previousScoredAccounts.map((p) => [p.id, p.score])),
     );
-    // Apply deprioritize category overrides
     return base.map((a) => {
       const dp = state.deprioritized[a.id];
       return dp ? { ...a, category: dp.category } : a;
     });
   }, [accountsWithStages, state.weights, previousScoredAccounts, state.deprioritized]);
+
+  // Derive importHistory from accounts grouped by import_filename (excel imports only)
+  const importHistory = useMemo<ImportRecord[]>(() => {
+    const byFile = new Map<string, ImportRecord>();
+    for (const a of state.accounts) {
+      const fn = a.importFilename;
+      if (!fn || a.dataSource !== "excel_import") continue;
+      const existing = byFile.get(fn);
+      if (existing) {
+        existing.accountIds.push(a.id);
+        existing.count = existing.accountIds.length;
+        if (a.sourceTimestamp && a.sourceTimestamp < existing.importedAt) {
+          existing.importedAt = a.sourceTimestamp;
+        }
+      } else {
+        byFile.set(fn, {
+          id: fn,
+          filename: fn,
+          importedAt: a.sourceTimestamp ?? new Date().toISOString(),
+          count: 1,
+          accountIds: [a.id],
+        });
+      }
+    }
+    return Array.from(byFile.values()).sort((a, b) => b.importedAt.localeCompare(a.importedAt));
+  }, [state.accounts]);
+
+  const stateWithHistory = useMemo(() => ({ ...state, importHistory }), [state, importHistory]);
 
   const activeAccount = useMemo(
     () => scoredAccounts.find((a) => a.id === state.activeAccountId) ?? null,
@@ -390,17 +357,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [],
   );
   const addCallLog = useCallback((log: CallLog) => dispatch({ type: "ADD_CALL_LOG", log }), []);
-  const addImportedAccounts = useCallback(
-    (accounts: Account[], filename?: string) =>
-      dispatch({ type: "ADD_IMPORTED", accounts, filename }),
-    [],
-  );
-  const removeImportedAccount = useCallback(
-    (id: string) => dispatch({ type: "REMOVE_IMPORTED", id }),
-    [],
-  );
-  const removeImportRecord = useCallback(
-    (recordId: string) => dispatch({ type: "REMOVE_IMPORT_RECORD", recordId }),
+  const setAccounts = useCallback(
+    (accounts: Account[]) => dispatch({ type: "SET_ACCOUNTS", accounts }),
     [],
   );
   const deprioritize = useCallback(
@@ -451,7 +409,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [state.weights]);
 
   const value: AppContextValue = {
-    state,
+    state: stateWithHistory,
     scoredAccounts,
     previousScoredAccounts,
     activeAccount,
@@ -461,9 +419,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setStage,
     addNote,
     addCallLog,
-    addImportedAccounts,
-    removeImportedAccount,
-    removeImportRecord,
+    setAccounts,
     deprioritize,
     undoDeprioritize,
     createPlan,

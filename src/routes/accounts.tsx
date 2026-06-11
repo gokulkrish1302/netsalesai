@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrencyShort } from "@/lib/format";
 import { toast } from "sonner";
 import { useModals } from "@/components/modals/ModalsProvider";
+import { EmptyAccountsState } from "@/components/common/EmptyAccountsState";
 
 export const Route = createFileRoute("/accounts")({
   head: () => ({
@@ -92,7 +93,19 @@ function AccountsPage() {
     toast.success(`Moved ${a.accountName} → ${CATEGORY_META[col].label}`);
   }
 
+  if (scoredAccounts.length === 0) {
+    return (
+      <div className="space-y-5">
+        <div>
+          <h1 className="display text-[28px] leading-tight md:text-[32px]">Accounts</h1>
+        </div>
+        <EmptyAccountsState onImport={() => modals.openImport()} />
+      </div>
+    );
+  }
+
   return (
+
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>

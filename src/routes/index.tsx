@@ -12,6 +12,8 @@ import { RankedAccountsList } from "@/components/dashboard/RankedAccountsList";
 import { ContextPreview } from "@/components/dashboard/ContextPreview";
 import { SortableWidget } from "@/components/dashboard/SortableWidget";
 import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
+import { EmptyAccountsState } from "@/components/common/EmptyAccountsState";
+import { useModals } from "@/components/modals/ModalsProvider";
 import { useAuth } from "@/state/AuthContext";
 import { useApp } from "@/state/AppStore";
 import { useDashboards, DEFAULT_LAYOUT, type WidgetKey } from "@/state/DashboardsContext";
@@ -49,6 +51,7 @@ export const Route = createFileRoute("/")({
 function Dashboard() {
   const { rep, user } = useAuth();
   const { scoredAccounts } = useApp();
+  const modals = useModals();
   const { active, updateLayout } = useDashboards();
   const layout = active?.layout ?? DEFAULT_LAYOUT;
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -187,26 +190,31 @@ function Dashboard() {
 
       <MorningBriefing />
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext
-          items={layout.widgets.filter((w) => w.visible).map((w) => w.key)}
-          strategy={verticalListSortingStrategy}
-        >
-          <div className="space-y-6">
-            {layout.widgets
-              .filter((w) => w.visible)
-              .map((w) => {
-                const node = renderWidget(w.key);
-                if (!node) return null;
-                return (
-                  <SortableWidget key={w.key} id={w.key}>
-                    {node}
-                  </SortableWidget>
-                );
-              })}
-          </div>
-        </SortableContext>
-      </DndContext>
+      {scoredAccounts.length === 0 ? (
+        <EmptyAccountsState onImport={() => modals.openImport()} />
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext
+            items={layout.widgets.filter((w) => w.visible).map((w) => w.key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-6">
+              {layout.widgets
+                .filter((w) => w.visible)
+                .map((w) => {
+                  const node = renderWidget(w.key);
+                  if (!node) return null;
+                  return (
+                    <SortableWidget key={w.key} id={w.key}>
+                      {node}
+                    </SortableWidget>
+                  );
+                })}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
     </div>
   );
 }

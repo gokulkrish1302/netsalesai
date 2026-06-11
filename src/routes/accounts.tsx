@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrencyShort } from "@/lib/format";
 import { toast } from "sonner";
 import { useModals } from "@/components/modals/ModalsProvider";
+import { EmptyAccountsState } from "@/components/common/EmptyAccountsState";
 
 export const Route = createFileRoute("/accounts")({
   head: () => ({

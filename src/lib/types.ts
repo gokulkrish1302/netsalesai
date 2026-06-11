@@ -46,6 +46,7 @@ export interface Account {
   riskCountMedium?: number;
   itBudgetEstimated?: boolean;
   lastSyncedAt?: string;
+  importFilename?: string;
 }
 
 export interface Weights {

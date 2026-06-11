@@ -18,28 +18,34 @@ export type Database = {
         Row: {
           account_id: string
           created_at: string
+          files: Json
           inputs_hash: string
           model: string
           plan: Json
           rep_email: string
+          stakeholders: Json
           updated_at: string
         }
         Insert: {
           account_id: string
           created_at?: string
+          files?: Json
           inputs_hash: string
           model: string
           plan: Json
           rep_email: string
+          stakeholders?: Json
           updated_at?: string
         }
         Update: {
           account_id?: string
           created_at?: string
+          files?: Json
           inputs_hash?: string
           model?: string
           plan?: Json
           rep_email?: string
+          stakeholders?: Json
           updated_at?: string
         }
         Relationships: [

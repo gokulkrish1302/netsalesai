@@ -114,13 +114,30 @@ function ActionPlanDetail() {
     }
   }, [account, plan, createPlan]);
 
-  const planContent = useMemo(() => (account ? buildActionPlan(account) : null), [account]);
-  const timeline = useMemo(
-    () => (account && plan ? buildUrgencyTimeline(account, plan.urgency) : []),
-    [account, plan],
-  );
-  const objections = useMemo(() => (account ? buildIndustryObjections(account) : []), [account]);
+  const getPlanFn = useServerFn(getOrGenerateActionPlan);
+  const regenPlanFn = useServerFn(regenerateActionPlan);
+  const aiPlanQuery = useQuery({
+    queryKey: ["action-plan", account?.id],
+    queryFn: () => getPlanFn({ data: { accountId: account!.id } }),
+    enabled: !!account,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const planContent = aiPlanQuery.data?.plan ?? null;
+  const timeline = planContent?.timeline ?? [];
+  const objections = planContent?.objections ?? [];
   const deal = useMemo(() => (account ? estimateDealSize(account) : null), [account]);
+
+  const handleRegeneratePlan = async () => {
+    if (!account) return;
+    try {
+      await regenPlanFn({ data: { accountId: account.id } });
+      await aiPlanQuery.refetch();
+      toast.success("Action plan regenerated");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to regenerate plan");
+    }
+  };
 
   if (account && !plan) {
     return (

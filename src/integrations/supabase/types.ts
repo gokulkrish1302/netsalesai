@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_action_plans: {
+        Row: {
+          account_id: string
+          created_at: string
+          inputs_hash: string
+          model: string
+          plan: Json
+          rep_email: string
+          updated_at: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          inputs_hash: string
+          model: string
+          plan: Json
+          rep_email: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          inputs_hash?: string
+          model?: string
+          plan?: Json
+          rep_email?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_action_plans_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: true
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounts: {
         Row: {
           account_name: string

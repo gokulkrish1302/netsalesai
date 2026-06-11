@@ -89,6 +89,14 @@ export function Sidebar() {
               >
                 <Icon className="h-[18px] w-[18px]" strokeWidth={active ? 2.2 : 1.8} />
                 <span className="flex-1 truncate">{item.label}</span>
+                {item.to === "/action-plans" && (
+                  <span
+                    className="rounded-full border px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+                    style={{ borderColor: "var(--primary)", color: "var(--primary)" }}
+                  >
+                    Beta
+                  </span>
+                )}
                 {item.badge && count > 0 && (
                   <span
                     className="flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[10px] font-semibold text-white"

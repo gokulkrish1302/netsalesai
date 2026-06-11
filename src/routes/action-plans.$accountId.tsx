@@ -595,11 +595,22 @@ function ActionPlanDetail() {
                         <div className="text-xs text-muted-foreground">{s.role}{s.email ? ` · ${s.email}` : ""}</div>
                       </div>
                     </div>
-                    {s.email && (
-                      <Button size="sm" variant="ghost" asChild>
-                        <a href={`mailto:${s.email}`}><Mail className="mr-1 h-3.5 w-3.5" /> Email</a>
+                    <div className="flex items-center gap-1">
+                      {s.email && (
+                        <Button size="sm" variant="ghost" asChild className="cursor-pointer">
+                          <a href={`mailto:${s.email}`}><Mail className="mr-1 h-3.5 w-3.5" /> Email</a>
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="cursor-pointer text-muted-foreground hover:text-[color:var(--hot)]"
+                        onClick={() => removeStakeholder(s.id)}
+                        aria-label="Remove stakeholder"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
-                    )}
+                    </div>
                   </li>
                 ))}
               </ul>

@@ -85,6 +85,7 @@ export type Database = {
           region: string | null
           renewal_days: number | null
           rep_email: string
+          rep_id: string
           risk_count_high: number | null
           risk_count_medium: number | null
           sales_rep: string | null
@@ -121,6 +122,7 @@ export type Database = {
           region?: string | null
           renewal_days?: number | null
           rep_email: string
+          rep_id?: string
           risk_count_high?: number | null
           risk_count_medium?: number | null
           sales_rep?: string | null
@@ -157,6 +159,7 @@ export type Database = {
           region?: string | null
           renewal_days?: number | null
           rep_email?: string
+          rep_id?: string
           risk_count_high?: number | null
           risk_count_medium?: number | null
           sales_rep?: string | null
@@ -178,6 +181,7 @@ export type Database = {
           id: string
           notes: string | null
           rep_email: string
+          rep_id: string
         }
         Insert: {
           account_name: string
@@ -187,6 +191,7 @@ export type Database = {
           id?: string
           notes?: string | null
           rep_email: string
+          rep_id?: string
         }
         Update: {
           account_name?: string
@@ -196,6 +201,7 @@ export type Database = {
           id?: string
           notes?: string | null
           rep_email?: string
+          rep_id?: string
         }
         Relationships: []
       }
@@ -207,6 +213,7 @@ export type Database = {
           layout: Json
           name: string
           rep_email: string
+          rep_id: string
           updated_at: string
         }
         Insert: {
@@ -216,6 +223,7 @@ export type Database = {
           layout?: Json
           name: string
           rep_email: string
+          rep_id?: string
           updated_at?: string
         }
         Update: {
@@ -225,6 +233,7 @@ export type Database = {
           layout?: Json
           name?: string
           rep_email?: string
+          rep_id?: string
           updated_at?: string
         }
         Relationships: []
@@ -232,16 +241,19 @@ export type Database = {
       rep_weights: {
         Row: {
           rep_email: string
+          rep_id: string
           updated_at: string
           weights: Json
         }
         Insert: {
           rep_email: string
+          rep_id?: string
           updated_at?: string
           weights: Json
         }
         Update: {
           rep_email?: string
+          rep_id?: string
           updated_at?: string
           weights?: Json
         }
